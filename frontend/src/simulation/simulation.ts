@@ -17,9 +17,11 @@ import {
   updatePredator,
   bounceIfAtEdge,
 } from "./entities";
+import type { IdCounter } from "./entities";
 
 export class Simulation {
   entities: Entity[] = [];
+  private ids: IdCounter = { value: 1 };
 
   constructor() {
     this.seed();
@@ -27,13 +29,13 @@ export class Simulation {
 
   private seed(): void {
     for (let i = 0; i < INITIAL_PLANTS; i++) {
-      this.entities.push(createEntity(Species.Plant));
+      this.entities.push(createEntity(Species.Plant, this.ids));
     }
     for (let i = 0; i < INITIAL_HERBIVORES; i++) {
-      this.entities.push(createEntity(Species.Herbivore));
+      this.entities.push(createEntity(Species.Herbivore, this.ids));
     }
     for (let i = 0; i < INITIAL_PREDATORS; i++) {
-      this.entities.push(createEntity(Species.Predator));
+      this.entities.push(createEntity(Species.Predator, this.ids));
     }
   }
 
@@ -46,14 +48,14 @@ export class Simulation {
 
     // Update predators first (they eat herbivores)
     for (const pred of predators) {
-      updatePredator(pred, herbivores, newEntities);
+      updatePredator(pred, herbivores, newEntities, this.ids);
       bounceIfAtEdge(pred);
     }
 
     // Update herbivores (they eat plants; some may have been killed by predators this tick)
     for (const herb of herbivores) {
       if (herb.energy > 0) {
-        updateHerbivore(herb, plants, newEntities);
+        updateHerbivore(herb, plants, newEntities, this.ids);
         bounceIfAtEdge(herb);
       }
     }
@@ -67,7 +69,7 @@ export class Simulation {
           plant.energy = Math.min(MAX_ENERGY, plant.energy + PLANT_ENERGY_REGEN);
           plant.energy -= PLANT_ENERGY_DRAIN;
         } else {
-          updatePlant(plant, plants, newEntities);
+          updatePlant(plant, plants, newEntities, this.ids);
         }
       }
     }
@@ -88,7 +90,7 @@ export class Simulation {
     const alive = this.entities.some((e) => e.species === species);
     if (!alive) {
       for (let i = 0; i < count; i++) {
-        this.entities.push(createEntity(species));
+        this.entities.push(createEntity(species, this.ids));
       }
     }
   }

@@ -28,7 +28,7 @@ import {
   PREDATOR_WANDER_CHANGE,
 } from "./constants";
 
-let nextId = 1;
+export type IdCounter = { value: number };
 
 function clampToWorld(x: number, y: number): [number, number] {
   return [
@@ -73,13 +73,14 @@ function findNearest(
 
 export function createEntity(
   species: Species,
+  ids: IdCounter,
   x?: number,
   y?: number,
   energy?: number
 ): Entity {
   const [rx, ry] = x !== undefined && y !== undefined ? [x, y] : randomInWorld();
   return {
-    id: nextId++,
+    id: ids.value++,
     species,
     x: rx,
     y: ry,
@@ -93,7 +94,8 @@ export function createEntity(
 export function updatePlant(
   plant: Entity,
   allPlants: Entity[],
-  newEntities: Entity[]
+  newEntities: Entity[],
+  ids: IdCounter
 ): boolean {
   // Photosynthesis
   plant.energy = Math.min(MAX_ENERGY, plant.energy + PLANT_ENERGY_REGEN);
@@ -122,7 +124,7 @@ export function updatePlant(
         plant.y + Math.sin(angle) * dist
       );
       plant.energy -= REPRODUCTION_COST;
-      newEntities.push(createEntity(Species.Plant, nx, ny, REPRODUCTION_COST * 0.5));
+      newEntities.push(createEntity(Species.Plant, ids, nx, ny, REPRODUCTION_COST * 0.5));
     }
   }
 
@@ -134,7 +136,8 @@ export function updatePlant(
 export function updateHerbivore(
   herb: Entity,
   plants: Entity[],
-  newEntities: Entity[]
+  newEntities: Entity[],
+  ids: IdCounter
 ): boolean {
   // Try to find food
   const target = findNearest(herb, plants, HERBIVORE_SENSE_RADIUS);
@@ -176,7 +179,7 @@ export function updateHerbivore(
       herb.x + Math.cos(angle) * 20,
       herb.y + Math.sin(angle) * 20
     );
-    newEntities.push(createEntity(Species.Herbivore, sx, sy, REPRODUCTION_COST * 0.5));
+    newEntities.push(createEntity(Species.Herbivore, ids, sx, sy, REPRODUCTION_COST * 0.5));
   }
 
   return true; // alive
@@ -187,7 +190,8 @@ export function updateHerbivore(
 export function updatePredator(
   pred: Entity,
   herbivores: Entity[],
-  newEntities: Entity[]
+  newEntities: Entity[],
+  ids: IdCounter
 ): boolean {
   // Try to find prey
   const target = findNearest(pred, herbivores, PREDATOR_SENSE_RADIUS);
@@ -227,7 +231,7 @@ export function updatePredator(
       pred.x + Math.cos(angle) * 25,
       pred.y + Math.sin(angle) * 25
     );
-    newEntities.push(createEntity(Species.Predator, sx, sy, REPRODUCTION_COST * 0.5));
+    newEntities.push(createEntity(Species.Predator, ids, sx, sy, REPRODUCTION_COST * 0.5));
   }
 
   return true; // alive
