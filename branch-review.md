@@ -5,6 +5,7 @@ Three branches each implement `week-2-implementation-plan.md` independently. Thi
 | | **Branch A** | **Branch B** | **Branch C** |
 |---|---|---|---|
 | **Branch** | `build-ecosystem-simulator-9sKeX` | `setup-monorepo-scaffolding-Gkw8T` | `week-2-implementation-acteH` |
+| **Branch** | `One-shot` | `Claude plans` | `Claude Code plans` |
 | **Commits** | 6 | 6 | 5 |
 | **Files** | 28 (~4,794 lines) | 38 (~5,003 lines) | 32 (~4,930 lines) |
 | **Stack** | Vite + React/TS, FastAPI + SQLite | Vite + React/TS, FastAPI + SQLite | Vite + React/TS, FastAPI + SQLite |
