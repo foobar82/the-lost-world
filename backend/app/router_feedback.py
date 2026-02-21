@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .database import get_db
@@ -9,21 +8,16 @@ from .schemas import FeedbackCreate, FeedbackCreatedResponse, FeedbackResponse
 router = APIRouter(prefix="/api/feedback", tags=["feedback"])
 
 
-def _next_reference(db: Session) -> str:
-    max_id: int | None = db.query(func.max(Feedback.id)).scalar()
-    seq = (max_id or 0) + 1
-    return f"LW-{seq:03d}"
-
-
 @router.post("", response_model=FeedbackCreatedResponse, status_code=201)
 def create_feedback(body: FeedbackCreate, db: Session = Depends(get_db)):
-    ref = _next_reference(db)
     feedback = Feedback(
-        reference=ref,
+        reference="",  # placeholder until we have the auto-generated id
         content=body.content,
         status=FeedbackStatus.pending,
     )
     db.add(feedback)
+    db.flush()  # assigns feedback.id from the autoincrement sequence
+    feedback.reference = f"LW-{feedback.id:03d}"
     db.commit()
     db.refresh(feedback)
     return FeedbackCreatedResponse(reference=feedback.reference, status=feedback.status)
