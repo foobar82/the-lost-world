@@ -17,7 +17,6 @@ import {
   updatePlant,
   updateHerbivore,
   updatePredator,
-  bounceIfAtEdge,
 } from "./entities";
 import type { IdCounter } from "./entities";
 
@@ -51,14 +50,12 @@ export class Simulation {
     // Update predators first (they eat herbivores)
     for (const pred of predators) {
       updatePredator(pred, herbivores, newEntities, this.ids);
-      bounceIfAtEdge(pred);
     }
 
     // Update herbivores (they eat plants; some may have been killed by predators this tick)
     for (const herb of herbivores) {
       if (herb.energy > 0) {
         updateHerbivore(herb, plants, newEntities, this.ids);
-        bounceIfAtEdge(herb);
       }
     }
 

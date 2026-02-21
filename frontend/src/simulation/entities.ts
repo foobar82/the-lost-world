@@ -37,6 +37,44 @@ function clampToWorld(x: number, y: number): [number, number] {
   ];
 }
 
+/** Move an entity by its speed, clamping to world bounds and bouncing if it
+ *  hits an edge. Combines the old clampToWorld + bounceIfAtEdge into a single
+ *  step so the entity can't get stuck oscillating at the boundary. */
+function moveAndContain(entity: Entity, speed: number): void {
+  const minX = PLATEAU_MARGIN;
+  const maxX = WORLD_WIDTH - PLATEAU_MARGIN;
+  const minY = PLATEAU_MARGIN;
+  const maxY = WORLD_HEIGHT - PLATEAU_MARGIN;
+
+  let nx = entity.x + Math.cos(entity.direction) * speed;
+  let ny = entity.y + Math.sin(entity.direction) * speed;
+
+  let bounced = false;
+  if (nx <= minX || nx >= maxX) {
+    // Reflect horizontal component of direction
+    entity.direction = Math.PI - entity.direction + (Math.random() - 0.5) * 0.4;
+    nx = Math.max(minX, Math.min(maxX, nx));
+    bounced = true;
+  }
+  if (ny <= minY || ny >= maxY) {
+    // Reflect vertical component of direction
+    entity.direction = -entity.direction + (Math.random() - 0.5) * 0.4;
+    ny = Math.max(minY, Math.min(maxY, ny));
+    bounced = true;
+  }
+
+  if (bounced) {
+    // Normalise direction to [-PI, PI]
+    entity.direction = Math.atan2(
+      Math.sin(entity.direction),
+      Math.cos(entity.direction),
+    );
+  }
+
+  entity.x = nx;
+  entity.y = ny;
+}
+
 function randomInWorld(): [number, number] {
   return [
     PLATEAU_MARGIN + Math.random() * (WORLD_WIDTH - 2 * PLATEAU_MARGIN),
@@ -155,13 +193,8 @@ export function updateHerbivore(
     herb.direction += (Math.random() - 0.5) * Math.PI * 0.5;
   }
 
-  // Move
-  const [nx, ny] = clampToWorld(
-    herb.x + Math.cos(herb.direction) * HERBIVORE_SPEED,
-    herb.y + Math.sin(herb.direction) * HERBIVORE_SPEED
-  );
-  herb.x = nx;
-  herb.y = ny;
+  // Move (handles boundary bouncing)
+  moveAndContain(herb, HERBIVORE_SPEED);
 
   // Energy drain
   herb.energy -= HERBIVORE_ENERGY_DRAIN;
@@ -207,13 +240,8 @@ export function updatePredator(
     pred.direction += (Math.random() - 0.5) * Math.PI * 0.5;
   }
 
-  // Move
-  const [nx, ny] = clampToWorld(
-    pred.x + Math.cos(pred.direction) * PREDATOR_SPEED,
-    pred.y + Math.sin(pred.direction) * PREDATOR_SPEED
-  );
-  pred.x = nx;
-  pred.y = ny;
+  // Move (handles boundary bouncing)
+  moveAndContain(pred, PREDATOR_SPEED);
 
   // Energy drain
   pred.energy -= PREDATOR_ENERGY_DRAIN;
@@ -237,16 +265,3 @@ export function updatePredator(
   return true; // alive
 }
 
-// --- Bounce direction when hitting plateau edge ---
-
-export function bounceIfAtEdge(entity: Entity): void {
-  if (
-    entity.x <= PLATEAU_MARGIN ||
-    entity.x >= WORLD_WIDTH - PLATEAU_MARGIN ||
-    entity.y <= PLATEAU_MARGIN ||
-    entity.y >= WORLD_HEIGHT - PLATEAU_MARGIN
-  ) {
-    // Reverse direction with some randomness
-    entity.direction = entity.direction + Math.PI + (Math.random() - 0.5) * 0.5;
-  }
-}
