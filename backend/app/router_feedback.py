@@ -26,12 +26,14 @@ def create_feedback(body: FeedbackCreate, db: Session = Depends(get_db)):
 @router.get("", response_model=list[FeedbackResponse])
 def list_feedback(
     status: FeedbackStatus | None = Query(None),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
 ):
     query = db.query(Feedback)
     if status is not None:
         query = query.filter(Feedback.status == status)
-    return query.order_by(Feedback.created_at.desc()).all()
+    return query.order_by(Feedback.created_at.desc()).offset(skip).limit(limit).all()
 
 
 @router.get("/{reference}", response_model=FeedbackResponse)
