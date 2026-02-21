@@ -5,6 +5,8 @@ import {
   INITIAL_HERBIVORES,
   INITIAL_PREDATORS,
   PLANT_CAP,
+  HERBIVORE_CAP,
+  PREDATOR_CAP,
   RESPAWN_COUNT,
   MAX_ENERGY,
   PLANT_ENERGY_REGEN,
@@ -77,8 +79,24 @@ export class Simulation {
     // Remove dead entities (energy <= 0)
     this.entities = this.entities.filter((e) => e.energy > 0);
 
-    // Add newborns
-    this.entities.push(...newEntities);
+    // Add newborns, respecting population caps
+    const caps: Record<string, number> = {
+      [Species.Plant]: PLANT_CAP,
+      [Species.Herbivore]: HERBIVORE_CAP,
+      [Species.Predator]: PREDATOR_CAP,
+    };
+    const counts = this.populationCounts;
+    const current: Record<string, number> = {
+      [Species.Plant]: counts.plants,
+      [Species.Herbivore]: counts.herbivores,
+      [Species.Predator]: counts.predators,
+    };
+    for (const e of newEntities) {
+      if (current[e.species] < caps[e.species]) {
+        this.entities.push(e);
+        current[e.species]++;
+      }
+    }
 
     // Respawn extinct species to prevent permanent extinction
     this.respawnIfExtinct(Species.Plant, RESPAWN_COUNT * 3);

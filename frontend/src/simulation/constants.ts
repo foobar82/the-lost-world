@@ -19,6 +19,8 @@ export const INITIAL_PREDATORS = 3;
 
 // Population limits
 export const PLANT_CAP = 120;
+export const HERBIVORE_CAP = 60;
+export const PREDATOR_CAP = 30;
 export const RESPAWN_COUNT = 3; // respawn this many when a species hits 0
 
 // Energy
