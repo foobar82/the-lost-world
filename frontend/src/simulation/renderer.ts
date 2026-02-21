@@ -1,4 +1,5 @@
-import { Entity, Species, SimulationConfig } from './types';
+import { Species } from './types';
+import type { Entity, SimulationConfig } from './types';
 
 const CLIFF_WIDTH = 16;
 

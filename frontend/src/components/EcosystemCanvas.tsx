@@ -1,5 +1,5 @@
 import { useRef, useEffect, useCallback } from 'react';
-import { SimulationConfig, SimulationState } from '../simulation/types';
+import type { SimulationConfig, SimulationState } from '../simulation/types';
 import { createInitialState, tick } from '../simulation/engine';
 import { render } from '../simulation/renderer';
 import { defaultConfig } from '../simulation/config';

@@ -1,42 +1,124 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f0e8d4;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.app-header {
+  padding: 16px 24px;
+  background-color: #3a2f20;
+  color: #f0e8d4;
+  border-bottom: 3px solid #5c4a30;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+.app-header h1 {
+  margin: 0;
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.app-header .subtitle {
+  margin: 4px 0 0;
+  font-family: 'Georgia', serif;
+  font-size: 13px;
+  color: #c4b896;
+  font-style: italic;
+}
+
+.app-main {
+  display: flex;
+  flex: 1;
+  gap: 0;
+  overflow: hidden;
+}
+
+/* Ecosystem canvas area */
+.canvas-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  min-width: 0;
+}
+
+.canvas-frame {
+  flex: 1;
+  border: 3px solid #8b7355;
+  border-radius: 6px;
+  background-color: #2c1810;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(139, 115, 85, 0.3);
+  overflow: hidden;
+  min-height: 400px;
+}
+
+.canvas-legend {
+  display: flex;
+  gap: 16px;
+  padding: 8px 4px;
+  font-family: 'Georgia', serif;
+  font-size: 12px;
+  color: #6b5d4a;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.legend-dot.plant {
+  background-color: #2d8a4e;
+}
+
+.legend-dot.herbivore {
+  background-color: #b08040;
+}
+
+.legend-tri {
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 10px solid #c0392b;
+}
+
+/* Feedback panel */
+.feedback-section {
+  width: 340px;
+  min-width: 280px;
+  border-left: 1px solid #d4c9a8;
+  background-color: #f5eeda;
+  overflow-y: auto;
+}
+
+/* Mobile layout: stack vertically */
+@media (max-width: 768px) {
+  .app-main {
+    flex-direction: column;
   }
-  to {
-    transform: rotate(360deg);
+
+  .canvas-section {
+    min-height: 300px;
   }
-}
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+  .canvas-frame {
+    min-height: 300px;
   }
-}
 
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
+  .feedback-section {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid #d4c9a8;
+  }
 }

@@ -1,8 +1,10 @@
-export enum Species {
-  Plant = 'plant',
-  Herbivore = 'herbivore',
-  Predator = 'predator',
-}
+export const Species = {
+  Plant: 'plant',
+  Herbivore: 'herbivore',
+  Predator: 'predator',
+} as const;
+
+export type Species = (typeof Species)[keyof typeof Species];
 
 export interface Entity {
   id: number;

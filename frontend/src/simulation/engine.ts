@@ -1,4 +1,5 @@
-import { Entity, Species, SimulationConfig, SimulationState } from './types';
+import { Species } from './types';
+import type { Entity, SimulationConfig, SimulationState } from './types';
 
 function randomInRange(min: number, max: number): number {
   return min + Math.random() * (max - min);

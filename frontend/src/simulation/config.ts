@@ -1,4 +1,4 @@
-import { SimulationConfig } from './types';
+import type { SimulationConfig } from './types';
 
 export const defaultConfig: SimulationConfig = {
   worldWidth: 800,
