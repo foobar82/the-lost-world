@@ -185,12 +185,18 @@ export default function EcosystemCanvas() {
     const sim = new Simulation();
     simRef.current = sim;
 
+    // HiDPI: scale the backing store so rendering is sharp on Retina displays
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = WORLD_WIDTH * dpr;
+    canvas.height = WORLD_HEIGHT * dpr;
+
     // Pre-render the static background (plateau + water) to an offscreen canvas
     // so the random grass texture doesn't flicker every frame.
     const bgCanvas = document.createElement("canvas");
-    bgCanvas.width = WORLD_WIDTH;
-    bgCanvas.height = WORLD_HEIGHT;
+    bgCanvas.width = WORLD_WIDTH * dpr;
+    bgCanvas.height = WORLD_HEIGHT * dpr;
     const bgCtx = bgCanvas.getContext("2d")!;
+    bgCtx.scale(dpr, dpr);
     drawPlateau(bgCtx);
     drawWater(bgCtx);
 
@@ -216,8 +222,12 @@ export default function EcosystemCanvas() {
       const ctx = canvas!.getContext("2d");
       if (!ctx) return;
 
-      // Blit cached background
+      // Reset transform and blit the pre-scaled background at native resolution
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.drawImage(bgCanvas, 0, 0);
+
+      // Scale so all entity/HUD drawing uses logical coordinates
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       // Entities
       for (const e of sim.entities) {
@@ -240,8 +250,6 @@ export default function EcosystemCanvas() {
   return (
     <canvas
       ref={canvasRef}
-      width={WORLD_WIDTH}
-      height={WORLD_HEIGHT}
       style={{
         width: "100%",
         maxWidth: WORLD_WIDTH,
