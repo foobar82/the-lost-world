@@ -194,15 +194,25 @@ export default function EcosystemCanvas() {
     drawPlateau(bgCtx);
     drawWater(bgCtx);
 
-    // --- Simulation tick (fixed rate, decoupled from rendering) ---
-    const tickTimer = setInterval(() => {
-      sim.tick();
-    }, TICK_INTERVAL);
-
-    // --- Render loop (requestAnimationFrame) ---
+    // --- Render loop with integrated fixed-timestep simulation ---
+    const MAX_CATCHUP_TICKS = 10;
+    let lastTime = performance.now();
     let animId: number;
 
-    function render() {
+    function render(now: number) {
+      const elapsed = now - lastTime;
+      lastTime = now;
+
+      // Run simulation ticks for elapsed time, capped to prevent burst
+      // processing after tab backgrounding
+      const ticks = Math.min(
+        Math.floor(elapsed / TICK_INTERVAL),
+        MAX_CATCHUP_TICKS,
+      );
+      for (let i = 0; i < ticks; i++) {
+        sim.tick();
+      }
+
       const ctx = canvas!.getContext("2d");
       if (!ctx) return;
 
@@ -223,7 +233,6 @@ export default function EcosystemCanvas() {
     animId = requestAnimationFrame(render);
 
     return () => {
-      clearInterval(tickTimer);
       cancelAnimationFrame(animId);
     };
   }, []);
