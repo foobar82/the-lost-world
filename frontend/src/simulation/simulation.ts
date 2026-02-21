@@ -6,6 +6,9 @@ import {
   INITIAL_PREDATORS,
   PLANT_CAP,
   RESPAWN_COUNT,
+  MAX_ENERGY,
+  PLANT_ENERGY_REGEN,
+  PLANT_ENERGY_DRAIN,
 } from "./constants";
 import {
   createEntity,
@@ -61,7 +64,8 @@ export class Simulation {
       if (plant.energy > 0) {
         if (atPlantCap) {
           // Still photosynthesize and drain, but skip reproduction
-          plant.energy = Math.min(100, plant.energy + 0.25);
+          plant.energy = Math.min(MAX_ENERGY, plant.energy + PLANT_ENERGY_REGEN);
+          plant.energy -= PLANT_ENERGY_DRAIN;
         } else {
           updatePlant(plant, plants, newEntities);
         }
