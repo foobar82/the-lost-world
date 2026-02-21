@@ -4,6 +4,8 @@ import {
   INITIAL_PLANTS,
   INITIAL_HERBIVORES,
   INITIAL_PREDATORS,
+  PLANT_CAP,
+  RESPAWN_COUNT,
 } from "./constants";
 import {
   createEntity,
@@ -53,10 +55,16 @@ export class Simulation {
       }
     }
 
-    // Update plants
+    // Update plants (skip reproduction if at cap)
+    const atPlantCap = plants.length >= PLANT_CAP;
     for (const plant of plants) {
       if (plant.energy > 0) {
-        updatePlant(plant, plants, newEntities);
+        if (atPlantCap) {
+          // Still photosynthesize and drain, but skip reproduction
+          plant.energy = Math.min(100, plant.energy + 0.25);
+        } else {
+          updatePlant(plant, plants, newEntities);
+        }
       }
     }
 
@@ -65,6 +73,20 @@ export class Simulation {
 
     // Add newborns
     this.entities.push(...newEntities);
+
+    // Respawn extinct species to prevent permanent extinction
+    this.respawnIfExtinct(Species.Plant, RESPAWN_COUNT * 3);
+    this.respawnIfExtinct(Species.Herbivore, RESPAWN_COUNT);
+    this.respawnIfExtinct(Species.Predator, RESPAWN_COUNT);
+  }
+
+  private respawnIfExtinct(species: Species, count: number): void {
+    const alive = this.entities.some((e) => e.species === species);
+    if (!alive) {
+      for (let i = 0; i < count; i++) {
+        this.entities.push(createEntity(species));
+      }
+    }
   }
 
   getBySpecies(species: Species): Entity[] {

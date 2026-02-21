@@ -143,9 +143,10 @@ export function updateHerbivore(
     herb.direction = angleToward(herb, target);
 
     if (distance(herb, target) < HERBIVORE_EAT_RADIUS) {
-      // Eat the plant (mark it for removal by zeroing energy)
-      herb.energy = Math.min(MAX_ENERGY, herb.energy + EATING_ENERGY_GAIN);
-      target.energy = 0;
+      // Graze: drain energy from plant rather than instant kill
+      const drained = Math.min(EATING_ENERGY_GAIN, target.energy);
+      herb.energy = Math.min(MAX_ENERGY, herb.energy + drained);
+      target.energy -= drained;
     }
   } else if (Math.random() < HERBIVORE_WANDER_CHANGE) {
     herb.direction += (Math.random() - 0.5) * Math.PI * 0.5;

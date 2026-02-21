@@ -185,6 +185,15 @@ export default function EcosystemCanvas() {
     const sim = new Simulation();
     simRef.current = sim;
 
+    // Pre-render the static background (plateau + water) to an offscreen canvas
+    // so the random grass texture doesn't flicker every frame.
+    const bgCanvas = document.createElement("canvas");
+    bgCanvas.width = WORLD_WIDTH;
+    bgCanvas.height = WORLD_HEIGHT;
+    const bgCtx = bgCanvas.getContext("2d")!;
+    drawPlateau(bgCtx);
+    drawWater(bgCtx);
+
     // --- Simulation tick (fixed rate, decoupled from rendering) ---
     const tickTimer = setInterval(() => {
       sim.tick();
@@ -197,12 +206,8 @@ export default function EcosystemCanvas() {
       const ctx = canvas!.getContext("2d");
       if (!ctx) return;
 
-      // Clear
-      ctx.clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-
-      // Static background
-      drawPlateau(ctx);
-      drawWater(ctx);
+      // Blit cached background
+      ctx.drawImage(bgCanvas, 0, 0);
 
       // Entities
       for (const e of sim.entities) {
