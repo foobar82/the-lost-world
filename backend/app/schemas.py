@@ -1,12 +1,12 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from .models import FeedbackStatus
 
 
 class FeedbackCreate(BaseModel):
-    content: str
+    content: str = Field(..., min_length=1, max_length=2000)
 
 
 class FeedbackResponse(BaseModel):
