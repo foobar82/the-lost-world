@@ -41,14 +41,17 @@ export default function FeedbackPanel() {
   const [confirmation, setConfirmation] = useState<string | null>(null);
   const [items, setItems] = useState<FeedbackItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [connected, setConnected] = useState(true);
 
   const loadItems = useCallback(async () => {
     try {
       const data = await fetchFeedback();
       setItems(data);
       setError(null);
+      setConnected(true);
     } catch {
       setError("Could not load feedback queue");
+      setConnected(false);
     }
   }, []);
 
@@ -85,7 +88,13 @@ export default function FeedbackPanel() {
 
   return (
     <div className="feedback-panel">
-      <h2 className="feedback-panel__heading">Field Dispatches</h2>
+      <h2 className="feedback-panel__heading">
+        Field Dispatches
+        <span
+          className={`connection-dot ${connected ? "connection-dot--ok" : "connection-dot--err"}`}
+          title={connected ? "Connected" : "Disconnected"}
+        />
+      </h2>
 
       <form className="submit-box" onSubmit={handleSubmit}>
         <label className="submit-box__label" htmlFor="feedback-input">

@@ -16,6 +16,27 @@
   margin: 0 0 1rem;
   padding-bottom: 0.5rem;
   border-bottom: 1px solid #E0D6C8;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* --- Connection indicator --- */
+
+.connection-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.connection-dot--ok {
+  background: #5B7C4A;
+}
+
+.connection-dot--err {
+  background: #A0392B;
 }
 
 /* --- Submit box --- */
