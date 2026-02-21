@@ -133,7 +133,7 @@ export function tick(state: SimulationState): SimulationState {
 
     // Seek nearest plant
     let target: Entity | null = null;
-    let bestDist = HERBIVORE.senseRadius;
+    let bestDist: number = HERBIVORE.senseRadius;
     for (const p of plants) {
       if (!p.alive) continue;
       const d = dist(h, p);
@@ -203,7 +203,7 @@ export function tick(state: SimulationState): SimulationState {
 
     // Seek nearest herbivore
     let target: Entity | null = null;
-    let bestDist = PREDATOR.senseRadius;
+    let bestDist: number = PREDATOR.senseRadius;
     for (const h of herbivores) {
       if (!h.alive) continue;
       const d = dist(pr, h);

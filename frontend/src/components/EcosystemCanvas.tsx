@@ -5,7 +5,10 @@ import { WORLD } from "../simulation/config";
 export function EcosystemCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [size, setSize] = useState({ width: WORLD.width, height: WORLD.height });
+  const [size, setSize] = useState<{ width: number; height: number }>({
+    width: WORLD.width,
+    height: WORLD.height,
+  });
 
   useSimulation(canvasRef);
 
