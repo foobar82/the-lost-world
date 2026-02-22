@@ -1,0 +1,62 @@
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem;
+}
+
+/* --- Header --- */
+
+.app__header {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.app__title {
+  font-family: "Lora", Georgia, "Times New Roman", serif;
+  font-weight: 600;
+  color: #3E2C1C;
+  font-size: 1.75rem;
+  margin: 0 0 0.2rem;
+  letter-spacing: 0.02em;
+}
+
+.app__subtitle {
+  font-style: italic;
+  color: #7A6652;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* --- Main layout: side-by-side on wide screens --- */
+
+.app__main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.app__canvas-area {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+}
+
+.app__feedback-area {
+  flex: 0 0 auto;
+}
+
+@media (min-width: 960px) {
+  .app__main {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+
+  .app__canvas-area {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .app__feedback-area {
+    flex: 0 0 340px;
+  }
+}
