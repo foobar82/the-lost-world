@@ -34,6 +34,22 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
+## CI / Pipeline
+
+Run the full check suite (lint, typecheck, test, build):
+
+```bash
+./scripts/pipeline.sh
+```
+
+### Git Hooks
+
+Enable the pre-push hook so the pipeline runs before every push:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ## Licence
 
 Apache 2.0 — see [LICENSE](LICENSE).
