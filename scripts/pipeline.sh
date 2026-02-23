@@ -8,7 +8,7 @@ echo "=== Step 1/6: Frontend Lint ==="
 cd "$REPO_ROOT/frontend" && npx eslint src/
 
 echo "=== Step 2/6: TypeScript Check ==="
-cd "$REPO_ROOT/frontend" && npx tsc --noEmit
+cd "$REPO_ROOT/frontend" && npx tsc -b --noEmit
 
 echo "=== Step 3/6: Backend Lint ==="
 cd "$REPO_ROOT/backend" && ruff check .
