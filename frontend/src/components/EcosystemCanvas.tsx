@@ -203,18 +203,21 @@ export default function EcosystemCanvas() {
     // --- Render loop with integrated fixed-timestep simulation ---
     const MAX_CATCHUP_TICKS = 10;
     let lastTime = performance.now();
+    let accumulator = 0;
     let animId: number;
 
     function render(now: number) {
       const elapsed = now - lastTime;
       lastTime = now;
 
-      // Run simulation ticks for elapsed time, capped to prevent burst
-      // processing after tab backgrounding
+      // Accumulate elapsed time across frames so ticks fire correctly
+      // even when a single frame (~16ms) is shorter than TICK_INTERVAL (100ms)
+      accumulator += elapsed;
       const ticks = Math.min(
-        Math.floor(elapsed / TICK_INTERVAL),
+        Math.floor(accumulator / TICK_INTERVAL),
         MAX_CATCHUP_TICKS,
       );
+      accumulator -= ticks * TICK_INTERVAL;
       for (let i = 0; i < ticks; i++) {
         sim.tick();
       }
