@@ -7,24 +7,29 @@ The Lost World Plateau v0 is running on a MacBook M3, with a CI/CD pipeline (lin
 Development happens on the Windows desktop via Claude Code. The pipeline will run in production on the MacBook.
 
 - **API provider:** Anthropic (Claude) — API key already set up
-- **Local LLM:** Ollama installed on MacBook but not yet tested
-- **Database:** ChromaDB not yet installed
+- **Local LLM:** ✅ Ollama running on MacBook — llama3.1:8b and nomic-embed-text models installed and tested
+- **SSH tunnel:** ✅ Windows can reach MacBook's Ollama via SSH tunnel (port 11434 forwarded). Connect with: `ssh macbook -N`
+- **Database:** ChromaDB installed in backend venv on MacBook, not yet configured
+- **Development pattern:** No mock mode for Ollama — Windows dev uses SSH tunnel to MacBook's Ollama. Mocks only used in automated tests.
 
 ---
 
-## Phase 1: Ollama Setup and Validation (MacBook) - COMPLETED
+## Phase 1: Ollama Setup and Validation (MacBook) ✅ COMPLETE
+
+Ollama is running on the MacBook with llama3.1:8b (chat/classification) and nomic-embed-text (embeddings) models. SSH tunnel configured from Windows desktop to MacBook (port 11434). Tested and working via both direct access on MacBook and tunnel from Windows.
+
+---
 
 ## Phase 2: ChromaDB Setup
 
-### 2.1 Install ChromaDB - COMPLETED
+### 2.1 Install ChromaDB ✅ COMPLETE
 
-Add to the backend dependencies:
+ChromaDB is installed in the backend virtual environment on the MacBook.
 
 ```bash
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install chromadb
+# Already done — activate venv and verify with:
+source backend/venv/bin/activate
+pip show chromadb
 ```
 
 ### 2.2 Configure ChromaDB
@@ -365,17 +370,15 @@ Read docs/pipeline-plan.md Phase 2 for specifications.
 
 Install ChromaDB and set up the embedding pipeline.
 
-- Add chromadb to backend dependencies
+- ChromaDB is already installed in the backend venv — verify with pip show chromadb
 - Create a persistent ChromaDB instance storing data in backend/data/chromadb/ (add backend/data/ to .gitignore)
 - Create a collection called "feedback_embeddings"
 - Write a utility module (pipeline/utils/embeddings.py) that:
-  - Calls Ollama's nomic-embed-text model to generate embeddings
+  - Calls Ollama's nomic-embed-text model to generate embeddings (Ollama runs on localhost:11434, accessible from both MacBook directly and Windows via SSH tunnel)
   - Stores embeddings in ChromaDB with the feedback reference as ID
   - Has a fallback that logs an error if Ollama is unavailable (does not crash)
 
-For development on Windows where Ollama isn't available, add a mock mode that generates random embeddings. Control this via an environment variable (e.g. OLLAMA_MOCK=true).
-
-Write tests for the embedding utility (mocked — don't require a running Ollama instance).
+Write tests for the embedding utility using mocked Ollama responses (don't require a running Ollama instance in tests).
 
 Commit when done.
 ```
@@ -397,7 +400,7 @@ Update POST /api/feedback to:
 3. If passed, generate embedding and store in ChromaDB
 4. Return reference number
 
-On Windows dev, filter agent should work in mock mode (always passes). Test both pass and reject paths.
+On Windows dev, Ollama is accessible via SSH tunnel on localhost:11434. Test both pass and reject paths using mocked responses in automated tests.
 
 Commit when done.
 ```
@@ -504,8 +507,9 @@ Commit when done.
 
 - The pipeline/ directory is a new top-level directory in the monorepo
 - All LLM calls in tests must be mocked — never burn real API credits in automated tests
-- Include a OLLAMA_MOCK environment variable for Windows development where Ollama isn't available
+- Ollama is accessible on localhost:11434 from both machines (directly on MacBook, via SSH tunnel on Windows) — no mock mode needed outside of tests
 - The writer agent is the most complex — spend extra care on its system prompt and output parsing
 - The deployer agent interacts with git — make sure it handles dirty working directories and branch conflicts gracefully
 - Budget tracking must be persistent (survives process restarts) and accurate — this directly controls spend
 - Keep agent implementations focused and simple — the modularity is in the registry, not in each agent
+- Remember to activate the backend venv (source backend/venv/bin/activate) before running any Python pipeline code
