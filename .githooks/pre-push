@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Pre-push hook — runs the full pipeline before allowing a push.
+# Enable with:  git config core.hooksPath .githooks
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+exec "$REPO_ROOT/scripts/pipeline.sh"

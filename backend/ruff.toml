@@ -1,0 +1,15 @@
+line-length = 120
+
+[lint]
+select = [
+    "F",     # Pyflakes — unused imports, undefined names, etc.
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "I",     # isort — import ordering
+    "UP",    # pyupgrade — modernise syntax
+    "B",     # flake8-bugbear — common pitfalls
+    "SIM",   # flake8-simplify — simplifiable constructs
+]
+ignore = [
+    "B008",  # Depends() / Query() in function defaults is the standard FastAPI pattern
+]
