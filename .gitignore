@@ -20,6 +20,9 @@ build/
 *.db
 *.sqlite3
 
+# ChromaDB persistent storage
+backend/data/
+
 # Environment
 .env
 .env.local
