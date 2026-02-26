@@ -54,6 +54,28 @@ def _mock_store_embedding():
         yield mock
 
 
+@pytest.fixture(autouse=True)
+def _mock_filter_agent():
+    """Prevent real Ollama calls from the filter agent during backend tests.
+
+    By default the mock returns a 'safe' verdict.  Individual tests can
+    override this fixture to simulate rejection.
+    """
+    from pipeline.agents.base import AgentOutput
+
+    safe_output = AgentOutput(
+        data={"verdict": "safe", "reason": ""},
+        success=True,
+        message="Mocked filter — passed",
+        tokens_used=0,
+    )
+    with patch(
+        "app.router_feedback.AGENTS",
+        {"filter": type("MockAgent", (), {"run": lambda self, inp: safe_output})()},
+    ) as mock:
+        yield mock
+
+
 @pytest.fixture()
 def client(db_engine):
     """
