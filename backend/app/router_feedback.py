@@ -3,6 +3,8 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from pipeline.agents.base import AgentInput
+from pipeline.registry import AGENTS
 from pipeline.utils.embeddings import store_feedback_embedding
 
 from .database import get_db
@@ -26,6 +28,28 @@ def create_feedback(body: FeedbackCreate, db: Session = Depends(get_db)):
     feedback.reference = f"LW-{feedback.id:03d}"
     db.commit()
     db.refresh(feedback)
+
+    # Run filter agent — if rejected, update status and return early.
+    try:
+        filter_result = AGENTS["filter"].run(
+            AgentInput(data=body.content, context={})
+        )
+        if filter_result.data.get("verdict") == "reject":
+            feedback.status = FeedbackStatus.rejected
+            feedback.agent_notes = filter_result.data.get(
+                "reason", "Rejected by safety filter"
+            )
+            db.commit()
+            db.refresh(feedback)
+            return FeedbackCreatedResponse(
+                reference=feedback.reference, status=feedback.status
+            )
+    except Exception:
+        # If the filter agent itself crashes, don't block the user.
+        logger.exception(
+            "Filter agent error for %s — continuing with submission",
+            feedback.reference,
+        )
 
     # Generate embedding via Ollama and store in ChromaDB.
     # Fire-and-forget: a failure here must never block the user submission.

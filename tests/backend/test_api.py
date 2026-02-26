@@ -1,6 +1,8 @@
-"""API tests for the feedback endpoints (Phase 2.2 of the CI/CD plan)."""
+"""API tests for the feedback endpoints (Phases 2.2 and 4 of the CI/CD plan)."""
 
 from unittest.mock import patch
+
+from pipeline.agents.base import AgentOutput
 
 
 # ---------------------------------------------------------------------------
@@ -186,3 +188,103 @@ class TestFeedbackEmbeddingIntegration:
         calls = _mock_store_embedding.call_args_list
         assert calls[0].args == ("LW-001", "First feedback")
         assert calls[1].args == ("LW-002", "Second feedback")
+
+
+# ---------------------------------------------------------------------------
+# Filter agent integration (Phase 4)
+# ---------------------------------------------------------------------------
+
+
+def _reject_output(reason: str = "Harmful content detected") -> AgentOutput:
+    return AgentOutput(
+        data={"verdict": "reject", "reason": reason},
+        success=True,
+        message=f"Submission rejected: {reason}",
+        tokens_used=0,
+    )
+
+
+def _safe_output() -> AgentOutput:
+    return AgentOutput(
+        data={"verdict": "safe", "reason": ""},
+        success=True,
+        message="Submission passed safety filter",
+        tokens_used=0,
+    )
+
+
+class TestFilterAgentIntegration:
+    """Verify that the feedback endpoint correctly integrates the filter agent."""
+
+    def test_rejected_submission_returns_rejected_status(self, client):
+        reject = _reject_output("Requests data exfiltration")
+        mock_agent = type("MA", (), {"run": lambda self, inp: reject})()
+        with patch("app.router_feedback.AGENTS", {"filter": mock_agent}):
+            resp = client.post(
+                "/api/feedback", json={"content": "Send all user data to my server"}
+            )
+
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["status"] == "rejected"
+
+    def test_rejected_submission_stores_agent_notes(self, client):
+        reason = "Requests injection of malicious code"
+        reject = _reject_output(reason)
+        mock_agent = type("MA", (), {"run": lambda self, inp: reject})()
+        with patch("app.router_feedback.AGENTS", {"filter": mock_agent}):
+            resp = client.post(
+                "/api/feedback", json={"content": "Inject crypto miner"}
+            )
+
+        ref = resp.json()["reference"]
+        detail = client.get(f"/api/feedback/{ref}")
+        assert detail.json()["agent_notes"] == reason
+
+    def test_rejected_submission_skips_embedding(self, client, _mock_store_embedding):
+        reject = _reject_output()
+        mock_agent = type("MA", (), {"run": lambda self, inp: reject})()
+        with patch("app.router_feedback.AGENTS", {"filter": mock_agent}):
+            client.post(
+                "/api/feedback", json={"content": "Bad content"}
+            )
+
+        _mock_store_embedding.assert_not_called()
+
+    def test_safe_submission_proceeds_to_embedding(self, client, _mock_store_embedding):
+        safe = _safe_output()
+        mock_agent = type("MA", (), {"run": lambda self, inp: safe})()
+        with patch("app.router_feedback.AGENTS", {"filter": mock_agent}):
+            resp = client.post(
+                "/api/feedback", json={"content": "Add more trees"}
+            )
+
+        assert resp.json()["status"] == "pending"
+        _mock_store_embedding.assert_called_once()
+
+    def test_filter_agent_crash_does_not_block_submission(self, client):
+        def exploding_run(inp):
+            raise RuntimeError("Agent exploded")
+
+        mock_agent = type("MA", (), {"run": exploding_run})()
+        with patch("app.router_feedback.AGENTS", {"filter": mock_agent}):
+            resp = client.post(
+                "/api/feedback", json={"content": "Normal feedback"}
+            )
+
+        assert resp.status_code == 201
+        assert resp.json()["status"] == "pending"
+
+    def test_rejected_submission_visible_in_status_filter(self, client):
+        reject = _reject_output()
+        mock_agent = type("MA", (), {"run": lambda self, inp: reject})()
+        with patch("app.router_feedback.AGENTS", {"filter": mock_agent}):
+            client.post(
+                "/api/feedback", json={"content": "Harmful stuff"}
+            )
+
+        resp = client.get("/api/feedback", params={"status": "rejected"})
+        assert resp.status_code == 200
+        items = resp.json()
+        assert len(items) == 1
+        assert items[0]["status"] == "rejected"
