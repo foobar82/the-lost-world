@@ -99,6 +99,43 @@ class TestApplyChanges:
         assert result["success"] is False
         assert "unknown" in result["error"].lower()
 
+    def test_path_traversal_create_rejected(self, agent, tmp_path):
+        changes = [{"path": "../../etc/crontab", "action": "create",
+                     "content": "malicious"}]
+        result = agent._apply_changes(changes, str(tmp_path))
+        assert result["success"] is False
+        assert "escapes repository" in result["error"].lower()
+
+    def test_path_traversal_modify_rejected(self, agent, tmp_path):
+        changes = [{"path": "../../../etc/passwd", "action": "modify",
+                     "content": "malicious"}]
+        result = agent._apply_changes(changes, str(tmp_path))
+        assert result["success"] is False
+        assert "escapes repository" in result["error"].lower()
+
+    def test_path_traversal_delete_rejected(self, agent, tmp_path):
+        changes = [{"path": "../../important_file", "action": "delete",
+                     "content": ""}]
+        result = agent._apply_changes(changes, str(tmp_path))
+        assert result["success"] is False
+        assert "escapes repository" in result["error"].lower()
+
+    def test_path_traversal_nested_rejected(self, agent, tmp_path):
+        """Path that starts inside the repo but escapes via traversal."""
+        changes = [{"path": "src/../../..", "action": "create",
+                     "content": "malicious"}]
+        result = agent._apply_changes(changes, str(tmp_path))
+        assert result["success"] is False
+        assert "escapes repository" in result["error"].lower()
+
+    def test_valid_nested_path_still_works(self, agent, tmp_path):
+        """Ensure validation doesn't reject legitimate nested paths."""
+        changes = [{"path": "src/../src/module.py", "action": "create",
+                     "content": "x = 1"}]
+        result = agent._apply_changes(changes, str(tmp_path))
+        assert result["success"] is True
+        assert (tmp_path / "src" / "module.py").exists()
+
     def test_multiple_changes_applied_in_order(self, agent, tmp_path):
         changes = [
             {"path": "a.py", "action": "create", "content": "file a"},
