@@ -1,5 +1,7 @@
 """API tests for the feedback endpoints (Phase 2.2 of the CI/CD plan)."""
 
+from unittest.mock import patch
+
 
 # ---------------------------------------------------------------------------
 # POST /api/feedback
@@ -128,3 +130,59 @@ class TestReferenceGeneration:
             refs.add(resp.json()["reference"])
 
         assert len(refs) == 10
+
+
+# ---------------------------------------------------------------------------
+# Embedding integration (section 2.3)
+# ---------------------------------------------------------------------------
+
+
+class TestFeedbackEmbeddingIntegration:
+    """Verify that feedback submission triggers embedding generation."""
+
+    def test_store_embedding_called_with_reference_and_content(
+        self, client, _mock_store_embedding
+    ):
+        content = "Add fish to the water"
+        resp = client.post("/api/feedback", json={"content": content})
+        assert resp.status_code == 201
+
+        ref = resp.json()["reference"]
+        _mock_store_embedding.assert_called_once_with(ref, content)
+
+    def test_submission_succeeds_when_embedding_fails(self, client):
+        with patch(
+            "app.router_feedback.store_feedback_embedding", return_value=False
+        ):
+            resp = client.post(
+                "/api/feedback", json={"content": "Embedding will fail"}
+            )
+
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["reference"].startswith("LW-")
+        assert body["status"] == "pending"
+
+    def test_submission_succeeds_when_embedding_raises(self, client):
+        with patch(
+            "app.router_feedback.store_feedback_embedding",
+            side_effect=Exception("Ollama exploded"),
+        ):
+            resp = client.post(
+                "/api/feedback", json={"content": "Boom"}
+            )
+
+        # The submission must succeed even if the embedding layer throws.
+        assert resp.status_code == 201
+        assert resp.json()["status"] == "pending"
+
+    def test_embedding_receives_correct_content_for_multiple_submissions(
+        self, client, _mock_store_embedding
+    ):
+        client.post("/api/feedback", json={"content": "First feedback"})
+        client.post("/api/feedback", json={"content": "Second feedback"})
+
+        assert _mock_store_embedding.call_count == 2
+        calls = _mock_store_embedding.call_args_list
+        assert calls[0].args == ("LW-001", "First feedback")
+        assert calls[1].args == ("LW-002", "Second feedback")
