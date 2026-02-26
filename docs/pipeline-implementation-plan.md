@@ -32,7 +32,7 @@ source backend/venv/bin/activate
 pip show chromadb
 ```
 
-### 2.2 Configure ChromaDB
+### 2.2 Configure ChromaDB  ✅ COMPLETE
 
 ChromaDB will store embeddings of user feedback for clustering. Create a persistent ChromaDB instance that stores data on disk (survives restarts).
 
@@ -41,7 +41,7 @@ Configuration:
 - Collection name: `feedback_embeddings`
 - Embedding function: Ollama's nomic-embed-text model via API call
 
-### 2.3 Integration with Feedback Submission
+### 2.3 Integration with Feedback Submission ✅ COMPLETE
 
 When a new feedback submission arrives at POST /api/feedback:
 1. Save to SQLite (existing behaviour)
@@ -52,109 +52,26 @@ This happens at submission time, not batch time — per the architectural plan.
 
 ---
 
-## Phase 3: Agent Plugin Framework
+## Phase 3: Agent Plugin Framework ✅ COMPLETE
 
 This is the core abstraction. Each agent is a Python module with a standard interface.
 
-### 3.1 Base Interface
+### 3.1 Base Interface ✅ COMPLETE
 
-Create `pipeline/agents/base.py`:
-
-```python
-from abc import ABC, abstractmethod
-from dataclasses import dataclass
-from typing import Any
-
-@dataclass
-class AgentInput:
-    """Standard input to any agent."""
-    data: Any
-    context: dict  # Shared context (e.g. repo path, config, budget remaining)
-
-@dataclass
-class AgentOutput:
-    """Standard output from any agent."""
-    data: Any
-    success: bool
-    message: str  # Human-readable summary of what happened
-    tokens_used: int  # For cost tracking
-
-class Agent(ABC):
-    """Base class for all pipeline agents."""
-    
-    @abstractmethod
-    def run(self, input: AgentInput) -> AgentOutput:
-        pass
-    
-    @property
-    @abstractmethod
-    def name(self) -> str:
-        pass
-```
-
-### 3.2 Agent Implementations
+### 3.2 Agent Implementations ✅ COMPLETE
 
 Create one module per agent in `pipeline/agents/`:
 
 **pipeline/agents/filter_agent.py — Evil Filter**
-- Provider: Ollama (local)
-- Input: a single feedback submission (content text)
-- Logic: prompt the local model to classify whether the request is safe or harmful
-- Output: pass/reject with a reason
-- Prompt should be simple and direct: "Is this user request for a software feature safe and appropriate? Reply SAFE or REJECT with a one-line reason."
-
 **pipeline/agents/cluster_agent.py — Clustering**
-- Provider: ChromaDB + Ollama embeddings
-- Input: all pending feedback submissions
-- Logic: query ChromaDB for all pending embeddings, cluster by similarity (simple approach: use ChromaDB's built-in similarity search to group items within a distance threshold)
-- Output: list of clusters, each containing a list of feedback references, ordered by cluster size (largest first)
-
 **pipeline/agents/prioritiser_agent.py — Prioritisation**
-- Provider: Ollama (local)
-- Input: list of clusters from the cluster agent
-- Logic: select the top cluster(s) that fit within the daily budget. For each selected cluster, generate a brief summary of what the users are asking for.
-- Output: list of prioritised tasks with summaries
-
 **pipeline/agents/writer_agent.py — Code Writer**
-- Provider: Anthropic API (Claude)
-- Input: a task summary, plus the current codebase context (relevant files)
-- Logic: prompt Claude to generate the code changes needed to implement the task
-- Output: a git diff or set of file changes
-- Must include the contract file in the prompt context so Claude respects architectural invariants
-- This is the most expensive agent — track token usage carefully
-
 **pipeline/agents/reviewer_agent.py — Code Reviewer**
-- Provider: Anthropic API (Claude) — ideally a different model from the writer for correlated blind spot avoidance, but can use the same model initially with a different system prompt
-- Input: the proposed code changes from the writer
-- Logic: prompt Claude to review the changes for correctness, security, and adherence to the contract file
-- Output: approve/reject with comments. If rejected, include specific feedback for the writer.
-
 **pipeline/agents/deployer_agent.py — Deployer**
-- Provider: deterministic (no LLM)
-- Input: approved code changes
-- Logic: create a feature branch, apply changes, commit, run the CI/CD pipeline (scripts/pipeline.sh), merge to main if pipeline passes, run deployment
-- Output: success/failure with deployment details
 
-### 3.3 Agent Registry
-
-Create `pipeline/registry.py`:
+### 3.3 Agent Registry  ✅ COMPLETE
 
 A simple dictionary that maps step names to agent instances. This is where modularity lives — swapping an agent means changing one line in the registry.
-
-```python
-from pipeline.agents.filter_agent import FilterAgent
-from pipeline.agents.writer_agent import WriterAgent
-# ... etc
-
-AGENTS = {
-    "filter": FilterAgent(),
-    "cluster": ClusterAgent(),
-    "prioritise": PrioritiserAgent(),
-    "write": WriterAgent(),
-    "review": ReviewerAgent(),
-    "deploy": DeployerAgent(),
-}
-```
 
 ---
 
