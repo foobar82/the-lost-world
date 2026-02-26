@@ -1,12 +1,16 @@
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-# Ensure the backend package is importable from the repo-root tests/ directory
-sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "backend"))
+# Ensure both the repo root (for the pipeline package) and the backend
+# directory (for the app package) are importable from the tests/ directory.
+_repo_root = str(Path(__file__).resolve().parents[2])
+sys.path.insert(0, _repo_root)
+sys.path.insert(0, str(Path(_repo_root) / "backend"))
 
 from app.database import Base, get_db  # noqa: E402
 from app.main import app  # noqa: E402
@@ -34,6 +38,20 @@ def db_session(db_engine):
         yield session
     finally:
         session.close()
+
+
+@pytest.fixture(autouse=True)
+def _mock_store_embedding():
+    """Prevent real Ollama / ChromaDB calls during backend tests.
+
+    The mock returns True (success) by default.  Individual tests can
+    override this fixture or patch the function themselves when they need
+    to inspect call arguments or simulate failures.
+    """
+    with patch(
+        "app.router_feedback.store_feedback_embedding", return_value=True
+    ) as mock:
+        yield mock
 
 
 @pytest.fixture()

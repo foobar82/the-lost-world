@@ -1,9 +1,15 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+
+from pipeline.utils.embeddings import store_feedback_embedding
 
 from .database import get_db
 from .models import Feedback, FeedbackStatus
 from .schemas import FeedbackCreate, FeedbackCreatedResponse, FeedbackResponse
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/feedback", tags=["feedback"])
 
@@ -20,6 +26,20 @@ def create_feedback(body: FeedbackCreate, db: Session = Depends(get_db)):
     feedback.reference = f"LW-{feedback.id:03d}"
     db.commit()
     db.refresh(feedback)
+
+    # Generate embedding via Ollama and store in ChromaDB.
+    # Fire-and-forget: a failure here must never block the user submission.
+    try:
+        if not store_feedback_embedding(feedback.reference, body.content):
+            logger.warning(
+                "Embedding generation failed for %s — will backfill at batch time",
+                feedback.reference,
+            )
+    except Exception:
+        logger.exception(
+            "Unexpected error generating embedding for %s", feedback.reference
+        )
+
     return FeedbackCreatedResponse(reference=feedback.reference, status=feedback.status)
 
 
