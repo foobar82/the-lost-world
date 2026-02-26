@@ -1,7 +1,7 @@
 """Base interface for all pipeline agents."""
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -21,6 +21,24 @@ class AgentOutput:
     success: bool
     message: str  # Human-readable summary of what happened
     tokens_used: int  # For cost tracking
+
+
+@dataclass
+class FileChange:
+    """A single file change produced by the writer agent."""
+
+    path: str  # Relative to repo root
+    action: str  # "create", "modify", "delete"
+    content: str  # New file content (for create/modify); empty for delete
+
+
+@dataclass
+class WriterOutput:
+    """Structured output from the writer agent."""
+
+    changes: list[FileChange] = field(default_factory=list)
+    summary: str = ""
+    reasoning: str = ""
 
 
 class Agent(ABC):
