@@ -23,6 +23,9 @@ build/
 # ChromaDB persistent storage
 backend/data/
 
+# Pipeline budget data
+pipeline/data/
+
 # Environment
 .env
 .env.local
