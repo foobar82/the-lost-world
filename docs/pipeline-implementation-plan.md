@@ -308,7 +308,7 @@ Use these sequentially, reviewing between each.
 
 ### Prompt 1: Plugin Framework
 ```
-Read docs/pipeline-plan.md for the full implementation plan.
+Read docs/pipeline-implementation-plan.md for the full implementation plan.
 
 Implement Phase 3: the agent plugin framework.
 
@@ -323,7 +323,7 @@ Commit when done.
 
 ### Prompt 2: ChromaDB and Embedding
 ```
-Read docs/pipeline-plan.md Phase 2 for specifications.
+Read docs/pipeline-implementation-plan.md Phase 2 for specifications.
 
 Install ChromaDB and set up the embedding pipeline.
 
@@ -342,7 +342,7 @@ Commit when done.
 
 ### Prompt 3: Filter Agent and Submission-Time Processing
 ```
-Read docs/pipeline-plan.md Phases 3 and 4 for specifications.
+Read docs/pipeline-implementation-plan.md Phases 3 and 4 for specifications.
 
 Implement the filter agent and integrate submission-time processing into the feedback endpoint.
 
@@ -364,7 +364,7 @@ Commit when done.
 
 ### Prompt 4: Cluster, Prioritiser, and Budget Tracking
 ```
-Read docs/pipeline-plan.md Phases 3 and 5 for specifications.
+Read docs/pipeline-implementation-plan.md Phases 3 and 5 for specifications.
 
 Implement the cluster agent, prioritiser agent, and budget tracking.
 
@@ -392,7 +392,7 @@ Commit when done.
 
 ### Prompt 5: Writer, Reviewer, and Deployer
 ```
-Read docs/pipeline-plan.md Phases 3 and 6 for specifications.
+Read docs/pipeline-implementation-plan.md Phases 3 and 6 for specifications.
 
 Implement the writer, reviewer, and deployer agents. These are the most critical agents in the pipeline.
 
@@ -426,7 +426,7 @@ Commit when done.
 
 ### Prompt 6: Batch Orchestrator and Validation
 ```
-Read docs/pipeline-plan.md Phase 5 for specifications.
+Read docs/pipeline-implementation-plan.md Phase 5 for specifications.
 
 Implement the batch orchestrator and validate the full pipeline.
 
