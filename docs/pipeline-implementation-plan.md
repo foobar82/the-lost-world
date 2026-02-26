@@ -34,12 +34,52 @@ pip show chromadb
 
 ### 2.2 Configure ChromaDB  ✅ COMPLETE
 
-ChromaDB will store embeddings of user feedback for clustering. Create a persistent ChromaDB instance that stores data on disk (survives restarts).
+**This is a coding task.** No manual steps required — everything is done in Python.
 
-Configuration:
-- Storage path: `backend/data/chromadb/` (add `backend/data/` to `.gitignore`)
+ChromaDB will store embeddings of user feedback for clustering. The goal is a persistent ChromaDB client and a utility module that the rest of the pipeline can import to store and query embeddings.
+
+**What to create:**
+
+1. **`pipeline/utils/embeddings.py`** — the main utility module. Responsible for:
+   - Initialising a persistent ChromaDB client pointed at `backend/data/chromadb/`
+   - Getting (or creating) the `feedback_embeddings` collection
+   - Generating embeddings by calling Ollama's HTTP API directly (`POST http://localhost:11434/api/embeddings` with `model: nomic-embed-text` and the text as `prompt`)
+   - Storing an embedding in ChromaDB with the feedback reference number as the document ID
+   - Logging and swallowing errors gracefully if Ollama is unreachable (so a downed local model never blocks a user submission)
+
+2. **`.gitignore` update** — add `backend/data/` so the ChromaDB files on disk are never committed.
+
+**Configuration:**
+- Storage path: `backend/data/chromadb/` (created automatically by ChromaDB on first run)
 - Collection name: `feedback_embeddings`
-- Embedding function: Ollama's nomic-embed-text model via API call
+- Embedding function: raw HTTP call to Ollama's `/api/embeddings` endpoint (not a ChromaDB built-in embedding function — we call Ollama ourselves and pass the resulting vector to ChromaDB, so we stay in control of the Ollama URL and error handling)
+
+**Ollama embedding API call (for reference):**
+```python
+import httpx
+
+response = httpx.post(
+    "http://localhost:11434/api/embeddings",
+    json={"model": "nomic-embed-text", "prompt": text},
+    timeout=30,
+)
+embedding = response.json()["embedding"]  # list of floats
+```
+
+**ChromaDB storage (for reference):**
+```python
+import chromadb
+
+client = chromadb.PersistentClient(path="backend/data/chromadb")
+collection = client.get_or_create_collection("feedback_embeddings")
+collection.add(
+    ids=[str(feedback_ref)],
+    embeddings=[embedding],
+    documents=[text],
+)
+```
+
+**Tests:** Write unit tests for `pipeline/utils/embeddings.py` using mocked `httpx` responses — do not require a live Ollama instance in tests.
 
 ### 2.3 Integration with Feedback Submission ✅ COMPLETE
 

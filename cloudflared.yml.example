@@ -1,0 +1,21 @@
+# Cloudflare Named Tunnel configuration template
+# Use this for a stable hostname on your own domain (requires a Cloudflare account).
+#
+# Setup steps:
+#   1. cloudflared tunnel login
+#   2. cloudflared tunnel create the-lost-world
+#   3. Copy the tunnel ID printed above into the two fields below
+#   4. Add a DNS record:
+#        cloudflared tunnel route dns the-lost-world <your-hostname>
+#   5. Copy this file to ~/.cloudflared/config.yml (or keep it here)
+#   6. cloudflared tunnel run --config cloudflared.yml.example
+#
+# Replace every <...> placeholder before use.
+
+tunnel: <TUNNEL_ID>
+credentials-file: /home/<YOUR_USER>/.cloudflared/<TUNNEL_ID>.json
+
+ingress:
+  - hostname: <your-hostname.example.com>
+    service: http://localhost:8000
+  - service: http_status:404
