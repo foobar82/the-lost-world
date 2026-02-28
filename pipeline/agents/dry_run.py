@@ -10,7 +10,13 @@ Only the Anthropic-backed writer/reviewer and the deployer are mocked.
 
 import logging
 
-from ..budget import COST_PER_TOKEN_GBP
+from ..constants import (
+    COST_PER_TOKEN_GBP,
+    DEFAULT_REVIEWER_MODEL,
+    DEFAULT_WRITER_MODEL,
+    ESTIMATED_OUTPUT_TOKENS_REVIEWER,
+    ESTIMATED_OUTPUT_TOKENS_WRITER,
+)
 from .base import Agent, AgentInput, AgentOutput
 from .reviewer_agent import (
     SYSTEM_PROMPT as REVIEWER_SYSTEM_PROMPT,
@@ -27,10 +33,6 @@ from .writer_agent import (
 )
 
 logger = logging.getLogger(__name__)
-
-# Conservative output-token estimates used for budget projections.
-_ESTIMATED_OUTPUT_TOKENS_WRITER = 500
-_ESTIMATED_OUTPUT_TOKENS_REVIEWER = 300
 
 
 def _estimate_tokens(text: str) -> int:
@@ -52,7 +54,7 @@ class DryRunWriterAgent(Agent):
         task = input.data
         context = input.context
         repo_path = context.get("repo_path", ".")
-        model = context.get("writer_model", "claude-sonnet-4-20250514")
+        model = context.get("writer_model", DEFAULT_WRITER_MODEL)
         reviewer_feedback = context.get("reviewer_feedback")
 
         # Build the full prompt (same as the real writer) to validate
@@ -78,7 +80,7 @@ class DryRunWriterAgent(Agent):
 
         # Estimate tokens.
         input_tokens = _estimate_tokens(system + user_message)
-        output_tokens = _ESTIMATED_OUTPUT_TOKENS_WRITER
+        output_tokens = ESTIMATED_OUTPUT_TOKENS_WRITER
         total_tokens = input_tokens + output_tokens
         estimated_cost = total_tokens * COST_PER_TOKEN_GBP
 
@@ -124,7 +126,7 @@ class DryRunReviewerAgent(Agent):
         writer_data = input.data
         context = input.context
         repo_path = context.get("repo_path", ".")
-        model = context.get("reviewer_model", "claude-sonnet-4-20250514")
+        model = context.get("reviewer_model", DEFAULT_REVIEWER_MODEL)
 
         changes = writer_data.get("changes", []) if isinstance(writer_data, dict) else []
         summary = writer_data.get("summary", "") if isinstance(writer_data, dict) else ""
@@ -152,7 +154,7 @@ class DryRunReviewerAgent(Agent):
 
         # Estimate tokens.
         input_tokens = _estimate_tokens(system + user_message)
-        output_tokens = _ESTIMATED_OUTPUT_TOKENS_REVIEWER
+        output_tokens = ESTIMATED_OUTPUT_TOKENS_REVIEWER
         total_tokens = input_tokens + output_tokens
         estimated_cost = total_tokens * COST_PER_TOKEN_GBP
 

@@ -4,17 +4,17 @@ import logging
 
 import httpx
 
-from ..budget import COST_PER_TOKEN_GBP, check_budget, record_usage
+from ..budget import check_budget, record_usage
+from ..constants import (
+    COST_PER_TOKEN_GBP,
+    ESTIMATED_TOKENS_PER_SUMMARY,
+    HTTP_TIMEOUT_SECONDS,
+    OLLAMA_CHAT_MODEL,
+    OLLAMA_URL,
+)
 from .base import Agent, AgentInput, AgentOutput
 
 logger = logging.getLogger(__name__)
-
-OLLAMA_URL = "http://localhost:11434"
-CHAT_MODEL = "llama3.1:8b"
-
-# Estimated token overhead per summarisation call (Ollama doesn't always
-# report exact token counts, so we use a conservative estimate).
-ESTIMATED_TOKENS_PER_SUMMARY = 500
 
 
 class PrioritiserAgent(Agent):
@@ -100,11 +100,11 @@ class PrioritiserAgent(Agent):
             response = httpx.post(
                 f"{ollama_url}/api/chat",
                 json={
-                    "model": CHAT_MODEL,
+                    "model": OLLAMA_CHAT_MODEL,
                     "messages": [{"role": "user", "content": prompt}],
                     "stream": False,
                 },
-                timeout=30,
+                timeout=HTTP_TIMEOUT_SECONDS,
             )
             response.raise_for_status()
             body = response.json()

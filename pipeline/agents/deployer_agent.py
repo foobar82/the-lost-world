@@ -5,12 +5,18 @@ import subprocess
 import uuid
 from pathlib import Path
 
+from ..constants import (
+    DEFAULT_COMMAND_TIMEOUT_SECONDS,
+    DEPLOY_SCRIPT_TIMEOUT_SECONDS,
+    OUTPUT_TRUNCATION_LENGTH,
+    PIPELINE_SCRIPT_TIMEOUT_SECONDS,
+)
 from .base import Agent, AgentInput, AgentOutput
 
 logger = logging.getLogger(__name__)
 
 
-def _run_cmd(cmd: list[str], cwd: str, timeout: int = 300) -> subprocess.CompletedProcess:
+def _run_cmd(cmd: list[str], cwd: str, timeout: int = DEFAULT_COMMAND_TIMEOUT_SECONDS) -> subprocess.CompletedProcess:
     """Run a shell command, returning the CompletedProcess result."""
     return subprocess.run(
         cmd,
@@ -108,7 +114,7 @@ class DeployerAgent(Agent):
             # 5. Run the CI/CD pipeline.
             logger.info("Running pipeline on branch %s", branch_name)
             pipeline_result = _run_cmd(
-                ["bash", pipeline_script], cwd=repo_path, timeout=600,
+                ["bash", pipeline_script], cwd=repo_path, timeout=PIPELINE_SCRIPT_TIMEOUT_SECONDS,
             )
 
             if pipeline_result.returncode != 0:
@@ -120,8 +126,8 @@ class DeployerAgent(Agent):
                     data={
                         "branch": branch_name,
                         "deployed": False,
-                        "pipeline_stdout": pipeline_result.stdout[-2000:],
-                        "pipeline_stderr": pipeline_result.stderr[-2000:],
+                        "pipeline_stdout": pipeline_result.stdout[-OUTPUT_TRUNCATION_LENGTH:],
+                        "pipeline_stderr": pipeline_result.stderr[-OUTPUT_TRUNCATION_LENGTH:],
                     },
                     success=False,
                     message=f"Pipeline failed on branch {branch_name}",
@@ -152,7 +158,7 @@ class DeployerAgent(Agent):
             # 8. Run deployment.
             logger.info("Running deployment")
             deploy_result = _run_cmd(
-                ["bash", deploy_script], cwd=repo_path, timeout=600,
+                ["bash", deploy_script], cwd=repo_path, timeout=DEPLOY_SCRIPT_TIMEOUT_SECONDS,
             )
 
             deployed = deploy_result.returncode == 0
@@ -163,7 +169,7 @@ class DeployerAgent(Agent):
                 data={
                     "branch": branch_name,
                     "deployed": deployed,
-                    "deploy_output": deploy_result.stdout[-2000:] if not deployed else "",
+                    "deploy_output": deploy_result.stdout[-OUTPUT_TRUNCATION_LENGTH:] if not deployed else "",
                 },
                 success=True,
                 message=(
