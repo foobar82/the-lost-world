@@ -41,7 +41,7 @@ if _static_dir:
     # Catch-all: serve index.html for any non-API route (SPA client-side routing)
     @app.get("/{full_path:path}")
     def serve_spa(full_path: str):
-        file = _static_path / full_path
-        if file.is_file():
+        file = (_static_path / full_path).resolve()
+        if file.is_file() and file.is_relative_to(_static_path.resolve()):
             return FileResponse(file)
         return FileResponse(_static_path / "index.html")

@@ -202,9 +202,14 @@ class DeployerAgent(Agent):
 
         Returns {"success": True} or {"success": False, "error": "..."}.
         """
-        root = Path(repo_path)
+        root = Path(repo_path).resolve()
         for change in changes:
-            path = root / change["path"]
+            path = (root / change["path"]).resolve()
+            if not path.is_relative_to(root):
+                return {
+                    "success": False,
+                    "error": f"Path escapes repository: {change['path']}",
+                }
             action = change["action"]
             content = change.get("content", "")
 

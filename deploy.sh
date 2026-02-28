@@ -18,4 +18,7 @@ fi
 
 export LOST_WORLD_STATIC="$REPO_ROOT/frontend/dist"
 
+# Write PID file so scripts/deploy.sh can find and restart the server.
+echo $$ > "$REPO_ROOT/backend/uvicorn.pid"
+
 exec uvicorn app.main:app --host 0.0.0.0 --port 8000
