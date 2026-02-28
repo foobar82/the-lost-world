@@ -22,8 +22,9 @@ if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
 from backend.app.models import Feedback, FeedbackStatus  # noqa: E402
+
 from pipeline.agents.base import AgentInput, AgentOutput  # noqa: E402
-from pipeline.budget import check_budget  # noqa: E402
+from pipeline.budget import COST_PER_TOKEN_GBP, check_budget  # noqa: E402
 from pipeline.config import PIPELINE_CONFIG  # noqa: E402
 from pipeline.registry import AGENTS  # noqa: E402
 from pipeline.utils.embeddings import store_feedback_embedding  # noqa: E402
@@ -87,6 +88,8 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
     config: dict | None = None,
     agents: dict | None = None,
     session: Session | None = None,
+    *,
+    dry_run: bool = False,
 ) -> dict:
     """Execute a single batch run.
 
@@ -98,6 +101,10 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
         Override the default agent registry (useful for tests).
     session : Session, optional
         Provide an existing DB session (useful for tests).
+    dry_run : bool, optional
+        When True, Anthropic API calls are replaced with mocks and
+        deployment is logged but not executed.  Ollama / ChromaDB
+        calls still run for real (they are free).
 
     Returns
     -------
@@ -108,7 +115,26 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
     agent_map = agents or AGENTS
     owns_session = session is None
 
+    # In dry-run mode, swap out the expensive / side-effecting agents.
+    if dry_run:
+        from pipeline.agents.dry_run import (  # noqa: E402
+            DryRunDeployerAgent,
+            DryRunReviewerAgent,
+            DryRunWriterAgent,
+        )
+
+        agent_map = dict(agent_map)
+        agent_map["write"] = DryRunWriterAgent()
+        agent_map["review"] = DryRunReviewerAgent()
+        agent_map["deploy"] = DryRunDeployerAgent()
+        logger.info("=== DRY RUN MODE — Anthropic API calls will be mocked ===")
+
+
     summary = {
+        "dry_run": dry_run,
+        "submissions_found": 0,
+        "embeddings_backfilled": 0,
+        "clusters_found": 0,
         "tasks_attempted": 0,
         "tasks_completed": 0,
         "tasks_failed": 0,
@@ -136,11 +162,13 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
             session.close()
         return summary
 
+    summary["submissions_found"] = len(pending)
     logger.info("Found %d pending submission(s)", len(pending))
 
     # ── 3. Backfill missing embeddings ───────────────────────────────
     ollama_url = cfg.get("ollama_url", PIPELINE_CONFIG["ollama_url"])
     backfilled = _backfill_embeddings(pending, ollama_url)
+    summary["embeddings_backfilled"] = backfilled
     if backfilled:
         logger.info("Backfilled %d embedding(s)", backfilled)
 
@@ -157,6 +185,7 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
         return summary
 
     clusters = cluster_output.data.get("clusters", [])
+    summary["clusters_found"] = len(clusters)
     summary["total_tokens"] += cluster_output.tokens_used
 
     # ── 5. Prioritise ────────────────────────────────────────────────
@@ -297,12 +326,82 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
     return summary
 
 
+# ── dry-run summary ──────────────────────────────────────────────────
+
+
+def _print_dry_run_summary(summary: dict) -> None:
+    """Print a formatted summary after a dry-run batch."""
+    tokens = summary["total_tokens"]
+    estimated_cost = tokens * COST_PER_TOKEN_GBP
+    budget = summary.get("budget_remaining", {})
+    details = summary.get("details", [])
+
+    sep = "=" * 63
+    print(f"\n{sep}")
+    print("                    DRY RUN SUMMARY")
+    print(sep)
+    print(f"  Submissions processed:    {summary['submissions_found']}")
+    print(f"  Embeddings backfilled:    {summary['embeddings_backfilled']}")
+    print(f"  Clusters found:           {summary['clusters_found']}")
+    print(f"  Tasks prioritised:        {summary['tasks_attempted']}")
+    print(f"  Mock changes generated:   {summary['tasks_completed']}")
+    print()
+
+    print("  Budget estimate (Anthropic API only):")
+    print(f"    Estimated tokens:       ~{tokens:,}")
+    print(f"    Estimated cost:         £{estimated_cost:.4f}")
+    print(f"    Daily cap:              £{budget.get('daily_cap', 0):.2f}")
+    print(f"    Weekly cap:             £{budget.get('weekly_cap', 0):.2f}")
+    print(f"    Daily remaining:        £{budget.get('daily_remaining', 0):.2f}")
+    print(f"    Weekly remaining:       £{budget.get('weekly_remaining', 0):.2f}")
+    print()
+
+    if details:
+        print("  Task details:")
+        for i, detail in enumerate(details, 1):
+            task_summary = detail.get("summary", "(no summary)")
+            refs = detail.get("references", [])
+            task_tokens = detail.get("tokens", 0)
+            outcome = detail.get("outcome", "?")
+            task_cost = task_tokens * COST_PER_TOKEN_GBP
+            print(f"    {i}. {task_summary[:60]}")
+            print(f"       Refs: {', '.join(refs[:5])}"
+                  f"{'...' if len(refs) > 5 else ''}")
+            print(f"       Tokens: ~{task_tokens:,} (£{task_cost:.4f})")
+            print(f"       Outcome: {outcome}")
+        print()
+
+    print("  Result: Pipeline flow validated successfully."
+          if summary["tasks_failed"] == 0
+          else f"  Result: {summary['tasks_failed']} task(s) had issues.")
+    print(sep)
+
+
 # ── CLI entry point ───────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Run the agent pipeline batch",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "Validate the full pipeline flow without calling Anthropic or "
+            "deploying.  Ollama / ChromaDB calls still run (free)."
+        ),
+    )
+    args = parser.parse_args()
+
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(name)s %(levelname)s %(message)s",
     )
-    result = run_batch()
-    print(f"\nBatch summary: {result}")
+    result = run_batch(dry_run=args.dry_run)
+
+    if args.dry_run:
+        _print_dry_run_summary(result)
+    else:
+        print(f"\nBatch summary: {result}")
