@@ -29,10 +29,8 @@ export default defineConfig({
       '../tests/essential/test_*.ts',
       '../tests/essential/test_*.tsx',
     ],
-    server: {
-      deps: {
-        moduleDirectories: ['node_modules', path.resolve(__dirname, 'node_modules')],
-      },
+    deps: {
+      moduleDirectories: ['node_modules', path.resolve(__dirname, 'node_modules')],
     },
   },
 })
