@@ -1,11 +1,10 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
-
 from pipeline.agents.base import AgentInput
 from pipeline.registry import AGENTS
 from pipeline.utils.embeddings import store_feedback_embedding
+from sqlalchemy.orm import Session
 
 from .database import get_db
 from .models import Feedback, FeedbackStatus
