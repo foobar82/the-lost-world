@@ -44,3 +44,4 @@
 ** Domain allowlist**
 - api.anthropic.com
 - api.github.com
+- cloudflare.com
