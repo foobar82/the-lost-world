@@ -36,19 +36,22 @@ brew --version
 
 You should see output like `Homebrew 4.x.x`.
 
-### Step 2 — Install Python 3
+### Step 2 — Install Python 3.13
+
+ChromaDB requires Python 3.13 or earlier (its internal Pydantic V1 dependency
+is incompatible with Python 3.14+).
 
 ```bash
-brew install python
+brew install python@3.13
 ```
 
 Verify:
 
 ```bash
-python3 --version
+python3.13 --version
 ```
 
-You should see `Python 3.12.x` or later.
+You should see `Python 3.13.x`.
 
 ### Step 3 — Install Node.js
 
@@ -102,7 +105,7 @@ Replace `<REPOSITORY_URL>` with the actual Git URL for this project.
 
 ```bash
 cd ~/the-lost-world/backend
-python3 -m venv venv
+python3.13 -m venv venv
 ```
 
 ### Step 7 — Activate the virtual environment

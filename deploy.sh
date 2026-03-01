@@ -16,6 +16,14 @@ if [ -z "${VIRTUAL_ENV:-}" ]; then
   source venv/bin/activate
 fi
 
+# ChromaDB requires Python <=3.13 (Pydantic V1 is incompatible with 3.14+).
+py_minor=$(python -c 'import sys; print(sys.version_info.minor)')
+if [ "$py_minor" -ge 14 ]; then
+  echo "ERROR: Python 3.14+ detected. ChromaDB requires Python <=3.13." >&2
+  echo "Recreate the venv with: python3.13 -m venv venv" >&2
+  exit 1
+fi
+
 export LOST_WORLD_STATIC="$REPO_ROOT/frontend/dist"
 
 # Write PID file so scripts/deploy.sh can find and restart the server.
