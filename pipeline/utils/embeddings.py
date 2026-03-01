@@ -6,10 +6,13 @@ from pathlib import Path
 import chromadb
 import httpx
 
-logger = logging.getLogger(__name__)
+try:
+    from ..constants import EMBEDDING_MODEL, HTTP_TIMEOUT_SECONDS, OLLAMA_URL
+except ImportError:
+    # Fallback for tests that add pipeline/ directly to sys.path.
+    from constants import EMBEDDING_MODEL, HTTP_TIMEOUT_SECONDS, OLLAMA_URL
 
-OLLAMA_URL = "http://localhost:11434"
-EMBEDDING_MODEL = "nomic-embed-text"
+logger = logging.getLogger(__name__)
 CHROMADB_PATH = str(Path(__file__).resolve().parents[2] / "backend" / "data" / "chromadb")
 COLLECTION_NAME = "feedback_embeddings"
 
@@ -45,7 +48,7 @@ def generate_embedding(text: str, ollama_url: str | None = None) -> list[float] 
         response = httpx.post(
             url,
             json={"model": EMBEDDING_MODEL, "prompt": text},
-            timeout=30,
+            timeout=HTTP_TIMEOUT_SECONDS,
         )
         response.raise_for_status()
         return response.json()["embedding"]

@@ -6,16 +6,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
+from .constants import API_VERSION, FRONTEND_CORS_ORIGIN
 from .database import Base, engine
 from .router_feedback import router as feedback_router
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="The Lost World Plateau", version="0.1.0")
+app = FastAPI(title="The Lost World Plateau", version=API_VERSION)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=[FRONTEND_CORS_ORIGIN],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

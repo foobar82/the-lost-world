@@ -7,11 +7,10 @@ from pathlib import Path
 import anthropic
 
 from ..budget import check_budget, record_usage
+from ..constants import DEFAULT_REVIEWER_MODEL, REVIEWER_MAX_TOKENS
 from .base import Agent, AgentInput, AgentOutput
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_MODEL = "claude-sonnet-4-20250514"
 
 SYSTEM_PROMPT = """\
 You are a code reviewer for The Lost World Plateau, a bounded 2D ecosystem that \
@@ -103,7 +102,7 @@ class ReviewerAgent(Agent):
         writer_data = input.data
         context = input.context
         repo_path = context.get("repo_path", ".")
-        model = context.get("reviewer_model", DEFAULT_MODEL)
+        model = context.get("reviewer_model", DEFAULT_REVIEWER_MODEL)
 
         # Check budget before making an expensive API call.
         budget = check_budget()
@@ -147,7 +146,7 @@ class ReviewerAgent(Agent):
             client = anthropic.Anthropic()
             response = client.messages.create(
                 model=model,
-                max_tokens=2048,
+                max_tokens=REVIEWER_MAX_TOKENS,
                 system=system,
                 messages=[{"role": "user", "content": user_message}],
             )

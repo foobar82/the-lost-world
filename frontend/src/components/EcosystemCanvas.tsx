@@ -6,6 +6,7 @@ import {
   WORLD_WIDTH,
   WORLD_HEIGHT,
   TICK_INTERVAL,
+  MAX_ENERGY,
   WATER_X,
   WATER_Y,
   WATER_RADIUS_X,
@@ -14,6 +15,22 @@ import {
   PLANT_RADIUS,
   HERBIVORE_RADIUS,
   PREDATOR_SIZE,
+  ENTITY_ALPHA_MIN,
+  ENTITY_ALPHA_RANGE,
+  PREDATOR_TRIANGLE_BACK_ANGLE,
+  PREDATOR_TRIANGLE_BACK_SCALE,
+  PLATEAU_CORNER_RADIUS,
+  GRASS_SPOT_COUNT,
+  GRASS_SPOT_MIN_RADIUS,
+  GRASS_SPOT_MAX_RADIUS,
+  WATER_RIPPLE_LINE_WIDTH,
+  WATER_RIPPLE_OFFSET_X,
+  WATER_RIPPLE_OFFSET_Y,
+  WATER_RIPPLE_SCALE_X,
+  WATER_RIPPLE_SCALE_Y,
+  WATER_RIPPLE_ROTATION,
+  POP_LABEL_HERBIVORE_X,
+  POP_LABEL_PREDATOR_X,
 } from "../simulation/constants";
 
 // Colours
@@ -45,7 +62,7 @@ function drawPlateau(ctx: CanvasRenderingContext2D): void {
   ctx.fillStyle = PLATEAU_COLOUR;
   ctx.beginPath();
   // Rounded rectangle for the plateau edge
-  const r = 12;
+  const r = PLATEAU_CORNER_RADIUS;
   ctx.moveTo(m + r, m);
   ctx.lineTo(w - m - r, m);
   ctx.quadraticCurveTo(w - m, m, w - m, m + r);
@@ -60,11 +77,11 @@ function drawPlateau(ctx: CanvasRenderingContext2D): void {
 
   // Subtle grass texture — scattered slightly lighter spots
   ctx.fillStyle = "rgba(90, 160, 70, 0.15)";
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < GRASS_SPOT_COUNT; i++) {
     const gx = m + Math.random() * (w - 2 * m);
     const gy = m + Math.random() * (h - 2 * m);
     ctx.beginPath();
-    ctx.arc(gx, gy, 2 + Math.random() * 4, 0, Math.PI * 2);
+    ctx.arc(gx, gy, GRASS_SPOT_MIN_RADIUS + Math.random() * GRASS_SPOT_MAX_RADIUS, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -78,14 +95,14 @@ function drawWater(ctx: CanvasRenderingContext2D): void {
 
   // Light ripple highlight
   ctx.strokeStyle = "rgba(180, 220, 255, 0.4)";
-  ctx.lineWidth = 1;
+  ctx.lineWidth = WATER_RIPPLE_LINE_WIDTH;
   ctx.beginPath();
   ctx.ellipse(
-    WATER_X - 5,
-    WATER_Y - 5,
-    WATER_RADIUS_X * 0.6,
-    WATER_RADIUS_Y * 0.5,
-    -0.2,
+    WATER_X - WATER_RIPPLE_OFFSET_X,
+    WATER_Y - WATER_RIPPLE_OFFSET_Y,
+    WATER_RADIUS_X * WATER_RIPPLE_SCALE_X,
+    WATER_RADIUS_Y * WATER_RIPPLE_SCALE_Y,
+    WATER_RIPPLE_ROTATION,
     0,
     Math.PI * 2
   );
@@ -94,7 +111,7 @@ function drawWater(ctx: CanvasRenderingContext2D): void {
 }
 
 function drawPlant(ctx: CanvasRenderingContext2D, e: Entity): void {
-  const alpha = 0.4 + (e.energy / 100) * 0.6;
+  const alpha = ENTITY_ALPHA_MIN + (e.energy / MAX_ENERGY) * ENTITY_ALPHA_RANGE;
   ctx.fillStyle = PLANT_COLOUR;
   ctx.globalAlpha = alpha;
   ctx.beginPath();
@@ -104,7 +121,7 @@ function drawPlant(ctx: CanvasRenderingContext2D, e: Entity): void {
 }
 
 function drawHerbivore(ctx: CanvasRenderingContext2D, e: Entity): void {
-  const alpha = 0.4 + (e.energy / 100) * 0.6;
+  const alpha = ENTITY_ALPHA_MIN + (e.energy / MAX_ENERGY) * ENTITY_ALPHA_RANGE;
   ctx.fillStyle = HERBIVORE_COLOUR;
   ctx.globalAlpha = alpha;
   ctx.beginPath();
@@ -114,7 +131,7 @@ function drawHerbivore(ctx: CanvasRenderingContext2D, e: Entity): void {
 }
 
 function drawPredator(ctx: CanvasRenderingContext2D, e: Entity): void {
-  const alpha = 0.4 + (e.energy / 100) * 0.6;
+  const alpha = ENTITY_ALPHA_MIN + (e.energy / MAX_ENERGY) * ENTITY_ALPHA_RANGE;
   ctx.fillStyle = PREDATOR_COLOUR;
   ctx.globalAlpha = alpha;
 
@@ -126,13 +143,13 @@ function drawPredator(ctx: CanvasRenderingContext2D, e: Entity): void {
   ctx.moveTo(e.x + Math.cos(dir) * size, e.y + Math.sin(dir) * size);
   // Back-left
   ctx.lineTo(
-    e.x + Math.cos(dir + 2.4) * size * 0.8,
-    e.y + Math.sin(dir + 2.4) * size * 0.8
+    e.x + Math.cos(dir + PREDATOR_TRIANGLE_BACK_ANGLE) * size * PREDATOR_TRIANGLE_BACK_SCALE,
+    e.y + Math.sin(dir + PREDATOR_TRIANGLE_BACK_ANGLE) * size * PREDATOR_TRIANGLE_BACK_SCALE
   );
   // Back-right
   ctx.lineTo(
-    e.x + Math.cos(dir - 2.4) * size * 0.8,
-    e.y + Math.sin(dir - 2.4) * size * 0.8
+    e.x + Math.cos(dir - PREDATOR_TRIANGLE_BACK_ANGLE) * size * PREDATOR_TRIANGLE_BACK_SCALE,
+    e.y + Math.sin(dir - PREDATOR_TRIANGLE_BACK_ANGLE) * size * PREDATOR_TRIANGLE_BACK_SCALE
   );
   ctx.closePath();
   ctx.fill();
@@ -166,10 +183,10 @@ function drawPopulationCounter(
   ctx.fillText(`Plants: ${counts.plants}`, PLATEAU_MARGIN, y);
 
   ctx.fillStyle = HERBIVORE_COLOUR;
-  ctx.fillText(`Herbivores: ${counts.herbivores}`, PLATEAU_MARGIN + 120, y);
+  ctx.fillText(`Herbivores: ${counts.herbivores}`, PLATEAU_MARGIN + POP_LABEL_HERBIVORE_X, y);
 
   ctx.fillStyle = PREDATOR_COLOUR;
-  ctx.fillText(`Predators: ${counts.predators}`, PLATEAU_MARGIN + 280, y);
+  ctx.fillText(`Predators: ${counts.predators}`, PLATEAU_MARGIN + POP_LABEL_PREDATOR_X, y);
 
   ctx.restore();
 }

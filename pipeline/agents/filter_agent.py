@@ -4,12 +4,10 @@ import logging
 
 import httpx
 
+from ..constants import HTTP_TIMEOUT_SECONDS, OLLAMA_CHAT_MODEL, OLLAMA_URL
 from .base import Agent, AgentInput, AgentOutput
 
 logger = logging.getLogger(__name__)
-
-OLLAMA_URL = "http://localhost:11434"
-CHAT_MODEL = "llama3.1:8b"
 
 SYSTEM_PROMPT = (
     "You are a content safety classifier for a software feedback system. "
@@ -68,14 +66,14 @@ class FilterAgent(Agent):
             response = httpx.post(
                 f"{ollama_url}/api/chat",
                 json={
-                    "model": CHAT_MODEL,
+                    "model": OLLAMA_CHAT_MODEL,
                     "messages": [
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user", "content": text},
                     ],
                     "stream": False,
                 },
-                timeout=30,
+                timeout=HTTP_TIMEOUT_SECONDS,
             )
             response.raise_for_status()
             content = response.json()["message"]["content"]

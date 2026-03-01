@@ -5,17 +5,11 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
+from .constants import COST_PER_TOKEN_GBP, DAILY_CAP_GBP, WEEKLY_CAP_GBP
+
 logger = logging.getLogger(__name__)
 
 BUDGET_FILE = Path(__file__).resolve().parent / "data" / "budget.json"
-
-DAILY_CAP_GBP = 2.00
-WEEKLY_CAP_GBP = 8.00
-
-# Approximate cost per token in GBP (based on Anthropic pricing).
-# These are rough estimates — input and output tokens have different rates,
-# but we use a blended average for simplicity.
-COST_PER_TOKEN_GBP = 0.000012
 
 
 def _today_str() -> str:

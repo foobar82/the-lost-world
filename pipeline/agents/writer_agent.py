@@ -7,11 +7,10 @@ from pathlib import Path
 import anthropic
 
 from ..budget import check_budget, record_usage
+from ..constants import DEFAULT_WRITER_MODEL, WRITER_MAX_TOKENS
 from .base import Agent, AgentInput, AgentOutput, FileChange, WriterOutput
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_MODEL = "claude-sonnet-4-20250514"
 
 SYSTEM_PROMPT = """\
 You are a code writer for The Lost World Plateau, a bounded 2D ecosystem that \
@@ -128,7 +127,7 @@ class WriterAgent(Agent):
         task = input.data
         context = input.context
         repo_path = context.get("repo_path", ".")
-        model = context.get("writer_model", DEFAULT_MODEL)
+        model = context.get("writer_model", DEFAULT_WRITER_MODEL)
         reviewer_feedback = context.get("reviewer_feedback")
 
         # Check budget before making an expensive API call.
@@ -167,7 +166,7 @@ class WriterAgent(Agent):
             client = anthropic.Anthropic()
             response = client.messages.create(
                 model=model,
-                max_tokens=4096,
+                max_tokens=WRITER_MAX_TOKENS,
                 system=system,
                 messages=[{"role": "user", "content": user_message}],
             )

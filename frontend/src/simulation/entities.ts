@@ -20,12 +20,18 @@ import {
   HERBIVORE_EAT_RADIUS,
   HERBIVORE_REPRODUCE_CHANCE,
   HERBIVORE_WANDER_CHANGE,
+  HERBIVORE_SPAWN_RADIUS,
   PREDATOR_SPEED,
   PREDATOR_ENERGY_DRAIN,
   PREDATOR_SENSE_RADIUS,
   PREDATOR_EAT_RADIUS,
   PREDATOR_REPRODUCE_CHANCE,
   PREDATOR_WANDER_CHANGE,
+  PREDATOR_SPAWN_RADIUS,
+  OFFSPRING_ENERGY_RATIO,
+  INITIAL_ENERGY_RATIO,
+  DIRECTION_BOUNCE_RANGE,
+  WANDER_DIRECTION_RANGE,
 } from "./constants";
 
 export type IdCounter = { value: number };
@@ -52,13 +58,13 @@ function moveAndContain(entity: Entity, speed: number): void {
   let bounced = false;
   if (nx <= minX || nx >= maxX) {
     // Reflect horizontal component of direction
-    entity.direction = Math.PI - entity.direction + (Math.random() - 0.5) * 0.4;
+    entity.direction = Math.PI - entity.direction + (Math.random() - 0.5) * DIRECTION_BOUNCE_RANGE;
     nx = Math.max(minX, Math.min(maxX, nx));
     bounced = true;
   }
   if (ny <= minY || ny >= maxY) {
     // Reflect vertical component of direction
-    entity.direction = -entity.direction + (Math.random() - 0.5) * 0.4;
+    entity.direction = -entity.direction + (Math.random() - 0.5) * DIRECTION_BOUNCE_RANGE;
     ny = Math.max(minY, Math.min(maxY, ny));
     bounced = true;
   }
@@ -122,7 +128,7 @@ export function createEntity(
     species,
     x: rx,
     y: ry,
-    energy: energy ?? MAX_ENERGY * 0.6,
+    energy: energy ?? MAX_ENERGY * INITIAL_ENERGY_RATIO,
     direction: Math.random() * Math.PI * 2,
   };
 }
@@ -162,7 +168,7 @@ export function updatePlant(
         plant.y + Math.sin(angle) * dist
       );
       plant.energy -= REPRODUCTION_COST;
-      newEntities.push(createEntity(Species.Plant, ids, nx, ny, REPRODUCTION_COST * 0.5));
+      newEntities.push(createEntity(Species.Plant, ids, nx, ny, REPRODUCTION_COST * OFFSPRING_ENERGY_RATIO));
     }
   }
 
@@ -190,7 +196,7 @@ export function updateHerbivore(
       target.energy -= drained;
     }
   } else if (Math.random() < HERBIVORE_WANDER_CHANGE) {
-    herb.direction += (Math.random() - 0.5) * Math.PI * 0.5;
+    herb.direction += (Math.random() - 0.5) * Math.PI * WANDER_DIRECTION_RANGE;
   }
 
   // Move (handles boundary bouncing)
@@ -209,10 +215,10 @@ export function updateHerbivore(
     herb.energy -= REPRODUCTION_COST;
     const angle = Math.random() * Math.PI * 2;
     const [sx, sy] = clampToWorld(
-      herb.x + Math.cos(angle) * 20,
-      herb.y + Math.sin(angle) * 20
+      herb.x + Math.cos(angle) * HERBIVORE_SPAWN_RADIUS,
+      herb.y + Math.sin(angle) * HERBIVORE_SPAWN_RADIUS
     );
-    newEntities.push(createEntity(Species.Herbivore, ids, sx, sy, REPRODUCTION_COST * 0.5));
+    newEntities.push(createEntity(Species.Herbivore, ids, sx, sy, REPRODUCTION_COST * OFFSPRING_ENERGY_RATIO));
   }
 
   return true; // alive
@@ -237,7 +243,7 @@ export function updatePredator(
       target.energy = 0; // kill the herbivore
     }
   } else if (Math.random() < PREDATOR_WANDER_CHANGE) {
-    pred.direction += (Math.random() - 0.5) * Math.PI * 0.5;
+    pred.direction += (Math.random() - 0.5) * Math.PI * WANDER_DIRECTION_RANGE;
   }
 
   // Move (handles boundary bouncing)
@@ -256,10 +262,10 @@ export function updatePredator(
     pred.energy -= REPRODUCTION_COST;
     const angle = Math.random() * Math.PI * 2;
     const [sx, sy] = clampToWorld(
-      pred.x + Math.cos(angle) * 25,
-      pred.y + Math.sin(angle) * 25
+      pred.x + Math.cos(angle) * PREDATOR_SPAWN_RADIUS,
+      pred.y + Math.sin(angle) * PREDATOR_SPAWN_RADIUS
     );
-    newEntities.push(createEntity(Species.Predator, ids, sx, sy, REPRODUCTION_COST * 0.5));
+    newEntities.push(createEntity(Species.Predator, ids, sx, sy, REPRODUCTION_COST * OFFSPRING_ENERGY_RATIO));
   }
 
   return true; // alive
