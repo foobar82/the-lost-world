@@ -190,6 +190,17 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
     summary["clusters_found"] = len(clusters)
     summary["total_tokens"] += cluster_output.tokens_used
 
+    # When ChromaDB is unavailable the cluster agent returns empty documents.
+    # Fill them from the database so downstream agents still see the feedback.
+    content_by_ref = {fb.reference: fb.content for fb in pending}
+    for cluster in clusters:
+        if not cluster.get("documents"):
+            cluster["documents"] = [
+                content_by_ref[ref]
+                for ref in cluster["references"]
+                if ref in content_by_ref
+            ]
+
     # ── 5. Prioritise ────────────────────────────────────────────────
     prioritise_input = AgentInput(data=clusters, context=cfg)
     prioritise_output: AgentOutput = agent_map["prioritise"].run(prioritise_input)
