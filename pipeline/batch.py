@@ -21,6 +21,7 @@ _project_root = str(Path(__file__).resolve().parents[1])
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
+from backend.app.database import Base  # noqa: E402
 from backend.app.models import Feedback, FeedbackStatus  # noqa: E402
 
 from pipeline.agents.base import AgentInput, AgentOutput  # noqa: E402
@@ -38,6 +39,7 @@ logger = logging.getLogger(__name__)
 def _get_db_session(db_url: str) -> Session:
     """Create a one-off SQLAlchemy session for the batch run."""
     engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=engine)
     return sessionmaker(bind=engine)()
 
 
