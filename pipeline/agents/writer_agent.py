@@ -4,13 +4,20 @@ import json
 import logging
 from pathlib import Path
 
-import anthropic
-
 from ..budget import check_budget, record_usage
 from ..constants import DEFAULT_WRITER_MODEL, WRITER_MAX_TOKENS
 from .base import Agent, AgentInput, AgentOutput, FileChange, WriterOutput
 
 logger = logging.getLogger(__name__)
+
+try:
+    import anthropic
+except ImportError:
+    anthropic = None  # type: ignore[assignment]
+    logger.warning(
+        "anthropic package is not installed. "
+        "The writer agent will be unavailable."
+    )
 
 SYSTEM_PROMPT = """\
 You are a code writer for The Lost World Plateau, a bounded 2D ecosystem that \
@@ -124,6 +131,15 @@ class WriterAgent(Agent):
         return "write"
 
     def run(self, input: AgentInput) -> AgentOutput:
+        if anthropic is None:
+            logger.error("anthropic package is not installed — cannot write")
+            return AgentOutput(
+                data=WriterOutput().__dict__,
+                success=False,
+                message="anthropic package is not installed",
+                tokens_used=0,
+            )
+
         task = input.data
         context = input.context
         repo_path = context.get("repo_path", ".")
