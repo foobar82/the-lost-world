@@ -1,9 +1,10 @@
 """Embedding utilities: generate embeddings via Ollama and store them in ChromaDB."""
 
+from __future__ import annotations
+
 import logging
 from pathlib import Path
 
-import chromadb
 import httpx
 
 try:
@@ -16,18 +17,36 @@ logger = logging.getLogger(__name__)
 CHROMADB_PATH = str(Path(__file__).resolve().parents[2] / "backend" / "data" / "chromadb")
 COLLECTION_NAME = "feedback_embeddings"
 
+# Lazy-import chromadb: Pydantic V1 (used internally by chromadb) is
+# incompatible with Python 3.14+, so the import may fail at module-load time.
+# Wrapping it here allows the rest of the pipeline to function normally.
+try:
+    import chromadb
+except Exception:  # chromadb raises pydantic.v1.errors.ConfigError, not ImportError
+    chromadb = None  # type: ignore[assignment]
+    logger.warning(
+        "chromadb could not be imported (Pydantic V1 is incompatible with "
+        "Python 3.14+). Embedding storage and retrieval will be unavailable."
+    )
+
 _client: chromadb.ClientAPI | None = None
 
 
 def get_chromadb_client(path: str | None = None) -> chromadb.ClientAPI:
     """Return a persistent ChromaDB client, creating it on first call."""
     global _client
+    if chromadb is None:
+        raise ImportError(
+            "chromadb is not available — Pydantic V1 is incompatible with "
+            "Python 3.14+. Downgrade to Python <=3.13 or wait for a chromadb "
+            "release that migrates to Pydantic V2 settings."
+        )
     if _client is None:
         _client = chromadb.PersistentClient(path=path or CHROMADB_PATH)
     return _client
 
 
-def set_chromadb_client(client: chromadb.ClientAPI) -> None:
+def set_chromadb_client(client: chromadb.ClientAPI | None) -> None:
     """Override the module-level ChromaDB client (used by tests)."""
     global _client
     _client = client
