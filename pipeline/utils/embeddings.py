@@ -30,6 +30,7 @@ except Exception:  # chromadb raises pydantic.v1.errors.ConfigError, not ImportE
     )
 
 _client: chromadb.ClientAPI | None = None
+_chromadb_store_warned: bool = False
 
 
 def get_chromadb_client(path: str | None = None) -> chromadb.ClientAPI:
@@ -94,5 +95,10 @@ def store_feedback_embedding(reference: str, text: str, ollama_url: str | None =
         )
         return True
     except Exception:
-        logger.exception("Failed to store embedding in ChromaDB for %s", reference)
+        global _chromadb_store_warned
+        if not _chromadb_store_warned:
+            logger.exception("Failed to store embedding in ChromaDB for %s", reference)
+            _chromadb_store_warned = True
+        else:
+            logger.debug("Failed to store embedding in ChromaDB for %s", reference)
         return False

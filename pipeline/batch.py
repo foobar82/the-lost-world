@@ -369,6 +369,23 @@ def _print_dry_run_summary(summary: dict) -> None:
     print(f"    Weekly remaining:       £{budget.get('weekly_remaining', 0):.2f}")
     print()
 
+    daily_cap = budget.get("daily_cap", 0)
+    weekly_cap = budget.get("weekly_cap", 0)
+    daily_remaining = budget.get("daily_remaining", 0)
+    weekly_remaining = budget.get("weekly_remaining", 0)
+
+    if estimated_cost > daily_remaining:
+        print(f"  ** WARNING: Estimated cost (£{estimated_cost:.2f}) exceeds "
+              f"daily remaining budget (£{daily_remaining:.2f}).")
+        print(f"  ** A real run would likely stop after ~"
+              f"{max(0, int(daily_remaining / (estimated_cost / max(len(details), 1))))} "
+              f"of {len(details)} tasks.")
+        print()
+    if estimated_cost > weekly_remaining:
+        print(f"  ** WARNING: Estimated cost (£{estimated_cost:.2f}) exceeds "
+              f"weekly remaining budget (£{weekly_remaining:.2f}).")
+        print()
+
     if details:
         print("  Task details:")
         for i, detail in enumerate(details, 1):
