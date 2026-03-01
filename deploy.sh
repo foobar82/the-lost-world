@@ -25,6 +25,7 @@ if [ "$py_minor" -ge 14 ]; then
 fi
 
 export LOST_WORLD_STATIC="$REPO_ROOT/frontend/dist"
+export PYTHONPATH="$REPO_ROOT${PYTHONPATH:+:$PYTHONPATH}"
 
 # Write PID file so scripts/deploy.sh can find and restart the server.
 echo $$ > "$REPO_ROOT/backend/uvicorn.pid"
