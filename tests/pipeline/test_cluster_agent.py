@@ -3,8 +3,17 @@
 import sys
 from pathlib import Path
 
-import chromadb
 import pytest
+
+try:
+    import chromadb
+except Exception:
+    chromadb = None  # type: ignore[assignment]
+
+pytestmark = pytest.mark.skipif(
+    chromadb is None,
+    reason="chromadb unavailable (Pydantic V1 / Python 3.14+ incompatibility)",
+)
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
