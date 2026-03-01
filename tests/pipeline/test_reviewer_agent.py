@@ -7,6 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+anthropic = pytest.importorskip("anthropic", reason="anthropic package not installed")
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from pipeline.agents.base import AgentInput, AgentOutput  # noqa: E402
