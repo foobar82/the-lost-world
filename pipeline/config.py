@@ -1,5 +1,15 @@
 """Pipeline configuration — all tuneable values in one place."""
 
+import os
+from pathlib import Path
+
+# Resolve the database path relative to the project layout so the pipeline
+# always connects to the same SQLite file the backend writes to, regardless
+# of the working directory at invocation time.
+_project_root = Path(__file__).resolve().parents[1]
+_default_db_path = _project_root / "backend" / "lost_world.db"
+_db_url = os.environ.get("DATABASE_URL", f"sqlite:///{_default_db_path}")
+
 PIPELINE_CONFIG = {
     "daily_budget_gbp": 2.00,
     "weekly_budget_gbp": 8.00,
@@ -11,5 +21,5 @@ PIPELINE_CONFIG = {
     "max_writer_retries": 2,
     "repo_path": ".",  # Override per environment
     "contract_file": "contract.md",
-    "db_url": "sqlite:///./lost_world.db",
+    "db_url": _db_url,
 }
