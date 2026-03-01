@@ -21,6 +21,7 @@ _project_root = str(Path(__file__).resolve().parents[1])
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
+from backend.app.database import Base  # noqa: E402
 from backend.app.models import Feedback, FeedbackStatus  # noqa: E402
 
 from pipeline.agents.base import AgentInput, AgentOutput  # noqa: E402
@@ -38,6 +39,7 @@ logger = logging.getLogger(__name__)
 def _get_db_session(db_url: str) -> Session:
     """Create a one-off SQLAlchemy session for the batch run."""
     engine = create_engine(db_url, connect_args={"check_same_thread": False})
+    Base.metadata.create_all(bind=engine)
     return sessionmaker(bind=engine)()
 
 
@@ -187,6 +189,17 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
     clusters = cluster_output.data.get("clusters", [])
     summary["clusters_found"] = len(clusters)
     summary["total_tokens"] += cluster_output.tokens_used
+
+    # When ChromaDB is unavailable the cluster agent returns empty documents.
+    # Fill them from the database so downstream agents still see the feedback.
+    content_by_ref = {fb.reference: fb.content for fb in pending}
+    for cluster in clusters:
+        if not cluster.get("documents"):
+            cluster["documents"] = [
+                content_by_ref[ref]
+                for ref in cluster["references"]
+                if ref in content_by_ref
+            ]
 
     # ── 5. Prioritise ────────────────────────────────────────────────
     prioritise_input = AgentInput(data=clusters, context=cfg)

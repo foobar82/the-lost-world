@@ -37,11 +37,14 @@ class ClusterAgent(Agent):
                 include=["embeddings", "documents"],
             )
         except Exception:
-            logger.exception("Failed to retrieve embeddings from ChromaDB")
+            logger.warning(
+                "ChromaDB unavailable — falling back to individual clusters"
+            )
+            clusters = [{"references": [ref], "documents": []} for ref in pending_refs]
             return AgentOutput(
-                data={"clusters": []},
-                success=False,
-                message="ChromaDB query failed",
+                data={"clusters": clusters},
+                success=True,
+                message=f"ChromaDB unavailable; created {len(clusters)} individual cluster(s)",
                 tokens_used=0,
             )
 
