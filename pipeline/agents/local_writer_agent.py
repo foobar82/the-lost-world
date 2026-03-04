@@ -156,6 +156,7 @@ class OllamaWriterAgent(Agent):
                         {"role": "user", "content": user_message},
                     ],
                     "stream": False,
+                    "format": "json",
                 },
                 timeout=OLLAMA_WRITER_TIMEOUT_SECONDS,
             )
