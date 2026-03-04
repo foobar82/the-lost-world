@@ -156,7 +156,26 @@ class OllamaWriterAgent(Agent):
                         {"role": "user", "content": user_message},
                     ],
                     "stream": False,
-                    "format": "json",
+                    "format": {
+                        "type": "object",
+                        "properties": {
+                            "changes": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "path":    {"type": "string"},
+                                        "action":  {"type": "string", "enum": ["create", "modify", "delete"]},
+                                        "content": {"type": "string"},
+                                    },
+                                    "required": ["path", "action", "content"],
+                                },
+                            },
+                            "summary":   {"type": "string"},
+                            "reasoning": {"type": "string"},
+                        },
+                        "required": ["changes", "summary", "reasoning"],
+                    },
                 },
                 timeout=OLLAMA_WRITER_TIMEOUT_SECONDS,
             )
