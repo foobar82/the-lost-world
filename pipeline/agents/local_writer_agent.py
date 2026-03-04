@@ -54,10 +54,9 @@ def _read_contract(repo_path: str) -> str:
     return "(No contract file found)"
 
 
-def _gather_source_files(repo_path: str) -> str:
-    """Collect source files for context."""
+def _iter_source_paths(repo_path: str):
+    """Yield (relative_path, absolute_path) for every relevant source file."""
     root = Path(repo_path)
-    source_lines = []
     extensions = {".py", ".ts", ".tsx", ".js", ".jsx", ".css", ".html"}
     exclude_dirs = {
         "node_modules", "dist", "build", ".git", "__pycache__",
@@ -75,13 +74,24 @@ def _gather_source_files(repo_path: str) -> str:
             continue
         if rel.name.startswith(exclude_prefixes):
             continue
+        yield rel, path
+
+
+def _gather_source_files(repo_path: str) -> tuple[str, str]:
+    """Return (file_manifest, file_contents) for all relevant source files."""
+    manifest_lines = []
+    content_lines = []
+    for rel, path in _iter_source_paths(repo_path):
+        manifest_lines.append(f"- {rel}")
         try:
             content = path.read_text()
         except (OSError, UnicodeDecodeError):
             continue
-        source_lines.append(f"--- {rel} ---\n{content}\n")
+        content_lines.append(f"--- {rel} ---\n{content}\n")
 
-    return "\n".join(source_lines) if source_lines else "(No source files found)"
+    manifest = "\n".join(manifest_lines) if manifest_lines else "(No source files found)"
+    contents = "\n".join(content_lines) if content_lines else "(No source files found)"
+    return manifest, contents
 
 
 def _parse_writer_response(text: str) -> WriterOutput:
@@ -126,7 +136,7 @@ class OllamaWriterAgent(Agent):
         # Build the prompt (same as the API writer).
         contract = _read_contract(repo_path)
         system = SYSTEM_PROMPT.format(contract=contract)
-        source_files = _gather_source_files(repo_path)
+        file_manifest, source_files = _gather_source_files(repo_path)
 
         task_summary = task.get("summary", str(task)) if isinstance(task, dict) else str(task)
         documents = task.get("documents", []) if isinstance(task, dict) else []
@@ -140,6 +150,9 @@ class OllamaWriterAgent(Agent):
             user_parts.append(
                 f"## Reviewer Feedback (address these issues)\n{reviewer_feedback}"
             )
+        user_parts.append(
+            f"## Available Files (you MUST use ONLY these exact paths)\n{file_manifest}"
+        )
         user_parts.append(f"## Source Files\n{source_files}")
         user_parts.append(f"## Task (implement this now)\n{task_summary}")
         user_message = "\n\n".join(user_parts)
