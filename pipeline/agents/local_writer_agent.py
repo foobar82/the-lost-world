@@ -141,6 +141,7 @@ class OllamaWriterAgent(Agent):
                 f"## Reviewer Feedback (address these issues)\n{reviewer_feedback}"
             )
         user_parts.append(f"## Source Files\n{source_files}")
+        user_parts.append(f"## Task (implement this now)\n{task_summary}")
         user_message = "\n\n".join(user_parts)
         logger.debug("System prompt for local writer agent: %s", system)
         logger.debug("Sending message to local writer agent: %s", user_message)
