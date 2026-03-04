@@ -142,8 +142,8 @@ class OllamaWriterAgent(Agent):
             )
         user_parts.append(f"## Source Files\n{source_files}")
         user_message = "\n\n".join(user_parts)
-        logger.info("System prompt for local writer agent: %s", system)
-        logger.info("Sending message to local writer agent: %s", user_message)
+        logger.debug("System prompt for local writer agent: %s", system)
+        logger.debug("Sending message to local writer agent: %s", user_message)
 
         # Call Ollama.
         try:
