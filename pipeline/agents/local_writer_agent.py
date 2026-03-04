@@ -142,6 +142,8 @@ class OllamaWriterAgent(Agent):
             )
         user_parts.append(f"## Source Files\n{source_files}")
         user_message = "\n\n".join(user_parts)
+        logger.info("System prompt for local writer agent: %s", system)
+        logger.info("Sending message to local writer agent: %s", user_message)
 
         # Call Ollama.
         try:
@@ -173,6 +175,7 @@ class OllamaWriterAgent(Agent):
 
         # Parse the response.
         response_text = body.get("message", {}).get("content", "")
+        logger.info("Received response from local writer agent: %s", response_text)
         try:
             writer_output = _parse_writer_response(response_text)
         except (json.JSONDecodeError, KeyError, ValueError) as exc:
