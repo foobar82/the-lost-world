@@ -6,7 +6,7 @@ from pathlib import Path
 
 import httpx
 
-from ..constants import HTTP_TIMEOUT_SECONDS, OLLAMA_URL
+from ..constants import OLLAMA_URL, OLLAMA_WRITER_TIMEOUT_SECONDS
 from .base import Agent, AgentInput, AgentOutput, FileChange, WriterOutput
 
 logger = logging.getLogger(__name__)
@@ -155,7 +155,7 @@ class OllamaWriterAgent(Agent):
                     ],
                     "stream": False,
                 },
-                timeout=HTTP_TIMEOUT_SECONDS,
+                timeout=OLLAMA_WRITER_TIMEOUT_SECONDS,
             )
             response.raise_for_status()
             body = response.json()

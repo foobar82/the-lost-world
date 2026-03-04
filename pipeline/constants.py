@@ -33,6 +33,9 @@ COST_PER_TOKEN_GBP: float = 0.000012
 # ── HTTP / subprocess timeouts ────────────────────────────────────────
 
 HTTP_TIMEOUT_SECONDS: int = 30
+# Local LLM inference (llama3.1:8b with full source context) can take several
+# minutes — use a dedicated, longer timeout for Ollama writer calls.
+OLLAMA_WRITER_TIMEOUT_SECONDS: int = 300
 DEFAULT_COMMAND_TIMEOUT_SECONDS: int = 300
 PIPELINE_SCRIPT_TIMEOUT_SECONDS: int = 600
 DEPLOY_SCRIPT_TIMEOUT_SECONDS: int = 600
