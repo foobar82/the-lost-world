@@ -150,10 +150,10 @@ class OllamaWriterAgent(Agent):
             user_parts.append(
                 f"## Reviewer Feedback (address these issues)\n{reviewer_feedback}"
             )
+        user_parts.append(f"## Source Files\n{source_files}")
         user_parts.append(
             f"## Available Files (you MUST use ONLY these exact paths)\n{file_manifest}"
         )
-        user_parts.append(f"## Source Files\n{source_files}")
         user_parts.append(f"## Task (implement this now)\n{task_summary}")
         user_message = "\n\n".join(user_parts)
         logger.debug("System prompt for local writer agent: %s", system)
