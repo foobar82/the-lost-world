@@ -92,6 +92,7 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
     session: Session | None = None,
     *,
     dry_run: bool = False,
+    local: bool = False,
 ) -> dict:
     """Execute a single batch run.
 
@@ -107,6 +108,11 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
         When True, Anthropic API calls are replaced with mocks and
         deployment is logged but not executed.  Ollama / ChromaDB
         calls still run for real (they are free).
+    local : bool, optional
+        When True, the writer and reviewer agents use a local Ollama
+        model (llama3.1:8b) instead of the Anthropic API.  Everything
+        else (filter, cluster, prioritiser, deployer) runs as normal.
+        Useful for smoke-testing the full pipeline without API credits.
 
     Returns
     -------
@@ -131,9 +137,20 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
         agent_map["deploy"] = DryRunDeployerAgent()
         logger.info("=== DRY RUN MODE — Anthropic API calls will be mocked ===")
 
+    # In local mode, swap writer and reviewer to use Ollama.
+    if local:
+        from pipeline.agents.local_writer_agent import OllamaWriterAgent  # noqa: E402
+        from pipeline.agents.local_reviewer_agent import OllamaReviewerAgent  # noqa: E402
+
+        agent_map = dict(agent_map)
+        agent_map["write"] = OllamaWriterAgent()
+        agent_map["review"] = OllamaReviewerAgent()
+        logger.info("=== Running with LOCAL models (smoke test) ===")
+
 
     summary = {
         "dry_run": dry_run,
+        "local": local,
         "submissions_found": 0,
         "embeddings_backfilled": 0,
         "clusters_found": 0,
@@ -423,13 +440,26 @@ if __name__ == "__main__":
             "deploying.  Ollama / ChromaDB calls still run (free)."
         ),
     )
+    parser.add_argument(
+        "--local",
+        action="store_true",
+        help=(
+            "Use local Ollama models (llama3.1:8b) for the writer and "
+            "reviewer agents instead of the Anthropic API.  Everything "
+            "else runs as normal.  Useful for smoke-testing the pipeline."
+        ),
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(name)s %(levelname)s %(message)s",
     )
-    result = run_batch(dry_run=args.dry_run)
+
+    if not args.local and not args.dry_run:
+        logger.info("=== Running with API models (production) ===")
+
+    result = run_batch(dry_run=args.dry_run, local=args.local)
 
     if args.dry_run:
         _print_dry_run_summary(result)
