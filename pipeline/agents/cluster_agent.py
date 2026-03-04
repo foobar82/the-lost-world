@@ -114,8 +114,13 @@ class ClusterAgent(Agent):
             result_docs = results["documents"][0]
             result_distances = results["distances"][0]
 
-            cluster_refs = []
-            cluster_docs = []
+            # Always seed the cluster with the current item itself.
+            # collection.query() uses an ANN index that may omit the exact
+            # query point (self-exclusion), so we cannot rely on it appearing
+            # in results — especially for single-item collections.
+            cluster_refs = [ref_id]
+            cluster_docs = [documents[i]]
+            clustered.add(ref_id)
 
             for rid, rdoc, dist in zip(result_ids, result_docs, result_distances):
                 if rid in clustered:
