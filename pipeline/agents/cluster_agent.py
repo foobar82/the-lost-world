@@ -2,14 +2,11 @@
 
 import logging
 
-from ..constants import CHROMADB_MAX_RESULTS
+from ..constants import CHROMADB_MAX_RESULTS, CLUSTER_DISTANCE_THRESHOLD as DISTANCE_THRESHOLD
 from ..utils.embeddings import get_collection
 from .base import Agent, AgentInput, AgentOutput
 
 logger = logging.getLogger(__name__)
-
-# Maximum distance (L2) between embeddings to be considered "similar".
-DISTANCE_THRESHOLD = 1.0
 
 
 class ClusterAgent(Agent):
@@ -97,7 +94,7 @@ class ClusterAgent(Agent):
             try:
                 results = collection.query(
                     query_embeddings=[embeddings[i]],
-                    n_results=min(len(ids), CHROMADB_MAX_RESULTS),
+                    n_results=min(collection.count(), CHROMADB_MAX_RESULTS),
                     include=["documents", "distances"],
                 )
             except Exception:

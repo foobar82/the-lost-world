@@ -8,10 +8,10 @@ from pathlib import Path
 import httpx
 
 try:
-    from ..constants import EMBEDDING_MODEL, HTTP_TIMEOUT_SECONDS, OLLAMA_URL
+    from ..constants import CLUSTER_DISTANCE_METRIC, EMBEDDING_MODEL, HTTP_TIMEOUT_SECONDS, OLLAMA_URL
 except ImportError:
     # Fallback for tests that add pipeline/ directly to sys.path.
-    from constants import EMBEDDING_MODEL, HTTP_TIMEOUT_SECONDS, OLLAMA_URL
+    from constants import CLUSTER_DISTANCE_METRIC, EMBEDDING_MODEL, HTTP_TIMEOUT_SECONDS, OLLAMA_URL
 
 logger = logging.getLogger(__name__)
 CHROMADB_PATH = str(Path(__file__).resolve().parents[2] / "backend" / "data" / "chromadb")
@@ -53,9 +53,31 @@ def set_chromadb_client(client: chromadb.ClientAPI | None) -> None:
     _client = client
 
 
+def _ensure_collection_metric(client, name: str, desired_metric: str) -> None:
+    """Delete and recreate the collection if its distance metric doesn't match."""
+    try:
+        existing = client.get_collection(name)
+        current_metric = existing.metadata.get("hnsw:space", "l2")
+        if current_metric != desired_metric:
+            logger.info(
+                "Recreating collection %s: changing distance metric from %s to %s",
+                name,
+                current_metric,
+                desired_metric,
+            )
+            client.delete_collection(name)
+    except Exception:
+        pass  # Collection doesn't exist yet — that's fine.
+
+
 def get_collection() -> chromadb.Collection:
     """Return the feedback_embeddings collection, creating it if needed."""
-    return get_chromadb_client().get_or_create_collection(COLLECTION_NAME)
+    client = get_chromadb_client()
+    _ensure_collection_metric(client, COLLECTION_NAME, CLUSTER_DISTANCE_METRIC)
+    return client.get_or_create_collection(
+        COLLECTION_NAME,
+        metadata={"hnsw:space": CLUSTER_DISTANCE_METRIC},
+    )
 
 
 def generate_embedding(text: str, ollama_url: str | None = None) -> list[float] | None:

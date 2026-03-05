@@ -54,6 +54,8 @@ ESTIMATED_OUTPUT_TOKENS_REVIEWER: int = 300
 # ── ChromaDB ──────────────────────────────────────────────────────────
 
 CHROMADB_MAX_RESULTS: int = 50
+CLUSTER_DISTANCE_THRESHOLD: float = PIPELINE_CONFIG["cluster_distance_threshold"]
+CLUSTER_DISTANCE_METRIC: str = PIPELINE_CONFIG["cluster_distance_metric"]
 
 # ── Output truncation ─────────────────────────────────────────────────
 

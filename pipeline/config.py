@@ -22,4 +22,6 @@ PIPELINE_CONFIG = {
     "repo_path": ".",  # Override per environment
     "contract_file": "contract.md",
     "db_url": _db_url,
+    "cluster_distance_threshold": 0.35,
+    "cluster_distance_metric": "cosine",
 }
