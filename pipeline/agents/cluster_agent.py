@@ -64,6 +64,7 @@ class ClusterAgent(Agent):
         clusters.sort(key=lambda c: len(c["references"]), reverse=True)
 
         logger.info("Formed %d cluster(s) from %d submissions", len(clusters), len(ids))
+        logger.info("Clusters are: %s", clusters)
         return AgentOutput(
             data={"clusters": clusters},
             success=True,
