@@ -125,6 +125,10 @@ class TestGetCollection:
         collection = get_collection()
         assert collection.name == "feedback_embeddings"
 
+    def test_collection_uses_cosine_distance(self):
+        collection = get_collection()
+        assert collection.metadata.get("hnsw:space") == "cosine"
+
     def test_collection_is_reusable(self):
         """Calling get_collection twice returns the same collection."""
         c1 = get_collection()

@@ -147,6 +147,26 @@ class TestClusterAgentClustering:
         assert len(clusters) == 1
         assert clusters[0]["references"] == ["LW-001"]
 
+    def test_old_items_do_not_prevent_pending_clustering(self, agent):
+        """Pending items cluster together even when old items fill the collection."""
+        old_ids = [f"OLD-{i:03d}" for i in range(40)]
+        old_embeddings = [[1.0 + i * 0.0001] * 768 for i in range(40)]
+        old_docs = [f"Old feedback {i}" for i in range(40)]
+
+        pending_ids = ["LW-001", "LW-002"]
+        pending_embeddings = [[1.0] * 768, [1.001] * 768]
+        pending_docs = ["Change background", "Change background please"]
+
+        _seed_collection(
+            ids=old_ids + pending_ids,
+            embeddings=old_embeddings + pending_embeddings,
+            documents=old_docs + pending_docs,
+        )
+        result = agent.run(_make_input(pending_ids))
+        clusters = result.data["clusters"]
+        assert len(clusters) == 1
+        assert set(clusters[0]["references"]) == {"LW-001", "LW-002"}
+
 
 # ---------------------------------------------------------------------------
 # Output structure
