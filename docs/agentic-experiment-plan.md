@@ -252,7 +252,7 @@ Leading indicators (in order of ease of detection):
 
 ## Roadmap
 
-### Month 1: Foundation — "Close the loop manually"
+### Month 1: Foundation — "Close the loop manually" - COMPLETE
 
 **Week 1: Setup**
 - Wipe MacBook, install clean OS (Ubuntu Server or macOS)
