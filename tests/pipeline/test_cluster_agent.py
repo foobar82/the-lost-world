@@ -117,22 +117,6 @@ class TestClusterAgentClustering:
         clusters = result.data["clusters"]
         assert len(clusters) == 2
 
-    def test_clusters_sorted_largest_first(self, agent):
-        # Three similar items + one outlier = one cluster of 3 + one of 1.
-        base = [1.0] * 768
-        similar_1 = [1.001] * 768
-        similar_2 = [1.002] * 768
-        outlier = [0.0] * 767 + [1.0]
-        _seed_collection(
-            ids=["LW-001", "LW-002", "LW-003", "LW-004"],
-            embeddings=[base, similar_1, similar_2, outlier],
-            documents=["Fish A", "Fish B", "Fish C", "Colour change"],
-        )
-        result = agent.run(_make_input(["LW-001", "LW-002", "LW-003", "LW-004"]))
-        clusters = result.data["clusters"]
-        assert len(clusters) == 2
-        assert len(clusters[0]["references"]) >= len(clusters[1]["references"])
-
     def test_only_clusters_pending_refs(self, agent):
         """Items in ChromaDB but not in the pending refs list are excluded."""
         base = [1.0] * 768

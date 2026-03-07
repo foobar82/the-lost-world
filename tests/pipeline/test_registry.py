@@ -11,7 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from pipeline.agents.base import Agent, AgentInput, AgentOutput  # noqa: E402
 from pipeline.registry import AGENTS  # noqa: E402
 
-EXPECTED_KEYS = {"filter", "cluster", "prioritise", "write", "review", "deploy"}
+EXPECTED_KEYS = {"filter", "cluster", "prioritise", "specify", "write", "review", "deploy"}
 
 
 # ---------------------------------------------------------------------------
