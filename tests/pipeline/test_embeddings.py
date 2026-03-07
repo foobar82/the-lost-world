@@ -2,7 +2,7 @@
 
 import sys
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import httpx
 import pytest
@@ -47,9 +47,20 @@ def _ephemeral_chromadb():
 class TestGenerateEmbedding:
     def test_returns_embedding_on_success(self):
         fake_response = httpx.Response(200, json={"embedding": FAKE_EMBEDDING}, request=OLLAMA_REQUEST)
-        with patch("utils.embeddings.httpx.post", return_value=fake_response):
+        with patch("utils.embeddings.httpx.post", return_value=fake_response) as mock_post:
             result = generate_embedding("hello world")
         assert result == FAKE_EMBEDDING
+        # Verify the default "clustering: " task prefix is prepended.
+        sent_payload = mock_post.call_args[1]["json"]
+        assert sent_payload["prompt"] == "clustering: hello world"
+
+    def test_custom_task_prefix(self):
+        fake_response = httpx.Response(200, json={"embedding": FAKE_EMBEDDING}, request=OLLAMA_REQUEST)
+        with patch("utils.embeddings.httpx.post", return_value=fake_response) as mock_post:
+            result = generate_embedding("hello world", task_prefix="search_query: ")
+        assert result == FAKE_EMBEDDING
+        sent_payload = mock_post.call_args[1]["json"]
+        assert sent_payload["prompt"] == "search_query: hello world"
 
     def test_returns_none_when_ollama_is_unreachable(self):
         with patch("utils.embeddings.httpx.post", side_effect=httpx.ConnectError("refused")):
