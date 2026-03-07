@@ -154,6 +154,7 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
         "submissions_found": 0,
         "embeddings_backfilled": 0,
         "clusters_found": 0,
+        "themes_found": 0,
         "tasks_attempted": 0,
         "tasks_completed": 0,
         "tasks_failed": 0,
@@ -217,6 +218,14 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
                 for ref in cluster["references"]
                 if ref in content_by_ref
             ]
+
+    # ── 4.5. Theme ───────────────────────────────────────────────────
+    theme_input = AgentInput(data=clusters, context=cfg)
+    theme_output: AgentOutput = agent_map["theme"].run(theme_input)
+    summary["total_tokens"] += theme_output.tokens_used
+    clusters = theme_output.data.get("themes", clusters)
+    summary["themes_found"] = len(clusters)
+    logger.info("Theme agent produced %d theme(s)", summary["themes_found"])
 
     # ── 5. Prioritise ────────────────────────────────────────────────
     prioritise_input = AgentInput(data=clusters, context=cfg)
@@ -383,6 +392,7 @@ def _print_dry_run_summary(summary: dict) -> None:
     print(f"  Submissions processed:    {summary['submissions_found']}")
     print(f"  Embeddings backfilled:    {summary['embeddings_backfilled']}")
     print(f"  Clusters found:           {summary['clusters_found']}")
+    print(f"  Themes identified:        {summary['themes_found']}")
     print(f"  Tasks specified:          {summary['tasks_attempted']}")
     print(f"  Mock changes generated:   {summary['tasks_completed']}")
     print()
