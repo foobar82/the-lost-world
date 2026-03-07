@@ -85,3 +85,27 @@ def get_feedback(reference: str, db: Session = Depends(get_db)):
     if feedback is None:
         raise HTTPException(status_code=404, detail="Feedback not found")
     return feedback
+
+
+@router.post("/{reference}/reactivate", response_model=FeedbackResponse)
+def reactivate_feedback(reference: str, db: Session = Depends(get_db)):
+    """Reset a ``done`` or ``rejected`` feedback item back to ``pending``.
+
+    Useful for re-queuing items that were incorrectly marked as completed
+    (e.g. during a dry run) or that need to be re-processed.
+    """
+    feedback = db.query(Feedback).filter(Feedback.reference == reference).first()
+    if feedback is None:
+        raise HTTPException(status_code=404, detail="Feedback not found")
+    if feedback.status == FeedbackStatus.pending:
+        return feedback
+    if feedback.status == FeedbackStatus.in_progress:
+        raise HTTPException(
+            status_code=409,
+            detail="Cannot reactivate feedback that is currently in progress",
+        )
+    feedback.status = FeedbackStatus.pending
+    feedback.agent_notes = None
+    db.commit()
+    db.refresh(feedback)
+    return feedback

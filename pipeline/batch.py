@@ -250,8 +250,9 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
         }
         summary["tasks_attempted"] += 1
 
-        # Mark in-progress.
-        _update_status(session, task_refs, FeedbackStatus.in_progress)
+        # Mark in-progress (skip during dry runs — no real work is happening).
+        if not dry_run:
+            _update_status(session, task_refs, FeedbackStatus.in_progress)
 
         # ── Write → Review retry loop ────────────────────────────────
         approved = False
@@ -308,17 +309,19 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
             task_detail["tokens"] += deploy_output.tokens_used
 
             if deploy_output.success:
-                _update_status(
-                    session, task_refs, FeedbackStatus.done,
-                    agent_notes=writer_data.get("summary", "Completed by agent pipeline"),
-                )
+                if not dry_run:
+                    _update_status(
+                        session, task_refs, FeedbackStatus.done,
+                        agent_notes=writer_data.get("summary", "Completed by agent pipeline"),
+                    )
                 task_detail["outcome"] = "done"
                 summary["tasks_completed"] += 1
                 logger.info("Task completed: %s", task.get("summary", "")[:100])
             else:
                 # Deployment failed — leave as pending to retry tomorrow.
-                _update_status(session, task_refs, FeedbackStatus.pending,
-                               agent_notes=f"Deploy failed: {deploy_output.message}")
+                if not dry_run:
+                    _update_status(session, task_refs, FeedbackStatus.pending,
+                                   agent_notes=f"Deploy failed: {deploy_output.message}")
                 task_detail["outcome"] = "deploy_failed"
                 summary["tasks_failed"] += 1
                 logger.warning("Deploy failed: %s", deploy_output.message)
@@ -327,8 +330,9 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
             notes = f"Review rejected after {attempts} attempt(s)"
             if reviewer_feedback:
                 notes += f": {reviewer_feedback[:200]}"
-            _update_status(session, task_refs, FeedbackStatus.pending,
-                           agent_notes=notes)
+            if not dry_run:
+                _update_status(session, task_refs, FeedbackStatus.pending,
+                               agent_notes=notes)
             task_detail["outcome"] = "review_rejected"
             summary["tasks_failed"] += 1
             logger.warning("Task rejected after %d attempt(s): %s",

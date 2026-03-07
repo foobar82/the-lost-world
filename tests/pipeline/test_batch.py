@@ -610,6 +610,66 @@ class TestBatchMultipleTasks:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Tests — dry run preserves status
+# ---------------------------------------------------------------------------
+
+
+class TestBatchDryRun:
+    @patch("pipeline.batch.store_feedback_embedding", return_value=True)
+    @patch("pipeline.batch.check_budget")
+    def test_dry_run_does_not_mark_submissions_done(
+        self, mock_budget, mock_embed, db_session, seed_pending,
+    ):
+        """A dry run should leave all submissions as pending."""
+        mock_budget.return_value = _ok_budget()
+
+        clusters = [{"references": seed_pending, "documents": ["fb1", "fb2", "fb3"]}]
+        tasks = [{"references": seed_pending, "summary": "Improve something",
+                  "documents": ["fb1", "fb2", "fb3"], "cluster_size": 3}]
+
+        agents = _make_agents(clusters, tasks)
+        result = run_batch(
+            config=PIPELINE_CONFIG, agents=agents, session=db_session,
+            dry_run=True,
+        )
+
+        assert result["tasks_completed"] == 1
+        assert result["dry_run"] is True
+
+        # All submissions must remain pending — dry run must not touch status.
+        for ref in seed_pending:
+            fb = db_session.query(Feedback).filter_by(reference=ref).one()
+            assert fb.status == FeedbackStatus.pending
+
+    @patch("pipeline.batch.store_feedback_embedding", return_value=True)
+    @patch("pipeline.batch.check_budget")
+    def test_dry_run_does_not_mark_in_progress(
+        self, mock_budget, mock_embed, db_session, seed_pending,
+    ):
+        """Dry run should not transition items to in_progress either."""
+        mock_budget.return_value = _ok_budget()
+
+        clusters = [{"references": seed_pending, "documents": ["fb1", "fb2", "fb3"]}]
+        tasks = [{"references": seed_pending, "summary": "Task",
+                  "documents": ["fb1", "fb2", "fb3"], "cluster_size": 3}]
+
+        agents = _make_agents(clusters, tasks)
+        run_batch(
+            config=PIPELINE_CONFIG, agents=agents, session=db_session,
+            dry_run=True,
+        )
+
+        for ref in seed_pending:
+            fb = db_session.query(Feedback).filter_by(reference=ref).one()
+            assert fb.status == FeedbackStatus.pending
+
+
+# ---------------------------------------------------------------------------
+# Tests — summary structure
+# ---------------------------------------------------------------------------
+
+
 class TestBatchSummary:
     @patch("pipeline.batch.store_feedback_embedding", return_value=True)
     @patch("pipeline.batch.check_budget")

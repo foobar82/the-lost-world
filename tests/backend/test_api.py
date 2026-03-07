@@ -288,3 +288,68 @@ class TestFilterAgentIntegration:
         items = resp.json()
         assert len(items) == 1
         assert items[0]["status"] == "rejected"
+
+
+# ---------------------------------------------------------------------------
+# POST /api/feedback/{reference}/reactivate
+# ---------------------------------------------------------------------------
+
+
+class TestReactivateFeedback:
+    def test_reactivate_done_feedback_resets_to_pending(self, client, db_session):
+        resp = client.post("/api/feedback", json={"content": "Some feedback"})
+        ref = resp.json()["reference"]
+
+        # Manually mark as done (simulates dry-run completion).
+        from app.models import Feedback, FeedbackStatus
+
+        fb = db_session.query(Feedback).filter_by(reference=ref).one()
+        fb.status = FeedbackStatus.done
+        fb.agent_notes = "Completed by agent pipeline"
+        db_session.commit()
+
+        resp = client.post(f"/api/feedback/{ref}/reactivate")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["status"] == "pending"
+        assert body["agent_notes"] is None
+
+    def test_reactivate_rejected_feedback_resets_to_pending(self, client, db_session):
+        resp = client.post("/api/feedback", json={"content": "Some feedback"})
+        ref = resp.json()["reference"]
+
+        from app.models import Feedback, FeedbackStatus
+
+        fb = db_session.query(Feedback).filter_by(reference=ref).one()
+        fb.status = FeedbackStatus.rejected
+        fb.agent_notes = "Rejected by safety filter"
+        db_session.commit()
+
+        resp = client.post(f"/api/feedback/{ref}/reactivate")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "pending"
+
+    def test_reactivate_already_pending_is_noop(self, client):
+        resp = client.post("/api/feedback", json={"content": "Some feedback"})
+        ref = resp.json()["reference"]
+
+        resp = client.post(f"/api/feedback/{ref}/reactivate")
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "pending"
+
+    def test_reactivate_in_progress_returns_409(self, client, db_session):
+        resp = client.post("/api/feedback", json={"content": "Some feedback"})
+        ref = resp.json()["reference"]
+
+        from app.models import Feedback, FeedbackStatus
+
+        fb = db_session.query(Feedback).filter_by(reference=ref).one()
+        fb.status = FeedbackStatus.in_progress
+        db_session.commit()
+
+        resp = client.post(f"/api/feedback/{ref}/reactivate")
+        assert resp.status_code == 409
+
+    def test_reactivate_nonexistent_returns_404(self, client):
+        resp = client.post("/api/feedback/LW-999/reactivate")
+        assert resp.status_code == 404
