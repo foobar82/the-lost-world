@@ -1,13 +1,12 @@
-"""Prioritisation agent — selects and summarises top clusters via Ollama."""
+"""Prioritisation agent — ranks clusters by implementation priority using Ollama."""
 
+import json
 import logging
 
 import httpx
 
-from ..budget import check_budget, record_usage
+from ..budget import check_budget
 from ..constants import (
-    COST_PER_TOKEN_GBP,
-    ESTIMATED_TOKENS_PER_SUMMARY,
     HTTP_TIMEOUT_SECONDS,
     OLLAMA_CHAT_MODEL,
     OLLAMA_URL,
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class PrioritiserAgent(Agent):
-    """Selects the highest-priority feedback clusters and summarises them."""
+    """Ranks feedback clusters by implementation priority using Ollama."""
 
     @property
     def name(self) -> str:
@@ -31,69 +30,62 @@ class PrioritiserAgent(Agent):
         if not clusters:
             logger.info("No clusters to prioritise")
             return AgentOutput(
-                data={"tasks": []},
+                data={"clusters": []},
                 success=True,
                 message="No clusters provided",
                 tokens_used=0,
             )
 
-        budget = check_budget()
-        if not budget["allowed"]:
-            logger.warning("Budget exhausted — skipping prioritisation")
+        if len(clusters) == 1:
+            logger.info("Single cluster — no prioritisation needed")
             return AgentOutput(
-                data={"tasks": []},
+                data={"clusters": clusters},
                 success=True,
-                message="Budget exhausted — no tasks selected",
+                message="Single cluster — returned as-is",
                 tokens_used=0,
             )
 
-        tasks = []
-        total_tokens = 0
+        budget = check_budget()
+        if not budget["allowed"]:
+            logger.warning("Budget exhausted — falling back to size-based ordering")
+            return AgentOutput(
+                data={"clusters": self._sort_by_size(clusters)},
+                success=True,
+                message="Budget exhausted — clusters ordered by size",
+                tokens_used=0,
+            )
 
-        for cluster in clusters:
-            # Check budget before each summarisation call.
-            remaining = check_budget()
-            estimated_cost = ESTIMATED_TOKENS_PER_SUMMARY * COST_PER_TOKEN_GBP
-            if remaining["daily_remaining"] < estimated_cost:
-                logger.info("Daily budget too low for another summary — stopping")
-                break
-
-            documents = cluster.get("documents", [])
-            references = cluster.get("references", [])
-
-            summary, tokens_used = self._summarise_cluster(documents, ollama_url)
-            total_tokens += tokens_used
-
-            if tokens_used > 0:
-                record_usage(tokens_used)
-
-            tasks.append({
-                "references": references,
-                "documents": documents,
-                "summary": summary,
-                "cluster_size": len(references),
-            })
-
-        logger.info("Prioritised %d task(s) using %d tokens", len(tasks), total_tokens)
+        ordered = self._rank_clusters(clusters, ollama_url)
+        logger.info("Prioritised %d cluster(s)", len(ordered))
         return AgentOutput(
-            data={"tasks": tasks},
+            data={"clusters": ordered},
             success=True,
-            message=f"Prioritised {len(tasks)} task(s)",
-            tokens_used=total_tokens,
+            message=f"Prioritised {len(ordered)} cluster(s)",
+            tokens_used=0,
         )
 
-    def _summarise_cluster(self, documents: list[str], ollama_url: str) -> tuple[str, int]:
-        """Generate a brief task summary for a cluster of feedback documents.
+    def _rank_clusters(self, clusters: list[dict], ollama_url: str) -> list[dict]:
+        """Ask Ollama to rank clusters by implementation priority.
 
-        Returns (summary_text, tokens_used).
+        Falls back to size-based ordering if Ollama is unavailable or the
+        response cannot be parsed.
         """
-        combined = "\n".join(f"- {doc}" for doc in documents)
+        summaries = []
+        for i, cluster in enumerate(clusters):
+            docs = cluster.get("documents", [])
+            snippet = "; ".join(docs[:3])
+            summaries.append(
+                f"{i}: [size={len(cluster.get('references', []))}] {snippet}"
+            )
+
         prompt = (
-            "Below is a group of related user feedback submissions for a software project. "
-            "Write a single brief task summary (1-2 sentences) that captures the common "
-            "theme or request.\n\n"
-            f"{combined}\n\n"
-            "Task summary:"
+            "You are a software project manager. Below are groups of user feedback "
+            "requests, each with an index, size, and sample content. "
+            "Rank them by implementation priority, considering: user impact (cluster size), "
+            "urgency or severity implied by the language, and whether requests conflict. "
+            "Reply with ONLY a JSON array of indices in priority order, highest first. "
+            "Example: [2, 0, 1]\n\n"
+            + "\n".join(summaries)
         )
 
         try:
@@ -108,16 +100,37 @@ class PrioritiserAgent(Agent):
             )
             response.raise_for_status()
             body = response.json()
-            summary = body["message"]["content"].strip()
+            content = body["message"]["content"].strip()
 
-            # Ollama may report token counts in eval_count / prompt_eval_count.
-            tokens = body.get("eval_count", 0) + body.get("prompt_eval_count", 0)
-            if tokens == 0:
-                tokens = ESTIMATED_TOKENS_PER_SUMMARY
+            # Extract JSON array from response.
+            start = content.find("[")
+            end = content.rfind("]") + 1
+            if start == -1 or end == 0:
+                raise ValueError("No JSON array in response")
+            ranking: list[int] = json.loads(content[start:end])
+            if not isinstance(ranking, list):
+                raise ValueError("Response is not a list")
 
-            return summary, tokens
-        except (httpx.HTTPError, KeyError, ValueError):
-            logger.warning("Ollama unavailable for summarisation — using fallback",
-                           exc_info=True)
-            fallback = f"Cluster of {len(documents)} related feedback item(s)"
-            return fallback, 0
+            # Reorder clusters; append any not mentioned by Ollama at the end.
+            seen: set[int] = set()
+            ordered: list[dict] = []
+            for idx in ranking:
+                if isinstance(idx, int) and 0 <= idx < len(clusters) and idx not in seen:
+                    ordered.append(clusters[idx])
+                    seen.add(idx)
+            for i, cluster in enumerate(clusters):
+                if i not in seen:
+                    ordered.append(cluster)
+
+            return ordered
+        except (httpx.HTTPError, KeyError, ValueError, json.JSONDecodeError):
+            logger.warning(
+                "Ollama unavailable or returned unparseable response — "
+                "falling back to size-based ordering",
+                exc_info=True,
+            )
+            return self._sort_by_size(clusters)
+
+    @staticmethod
+    def _sort_by_size(clusters: list[dict]) -> list[dict]:
+        return sorted(clusters, key=lambda c: len(c.get("references", [])), reverse=True)

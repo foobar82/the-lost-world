@@ -113,6 +113,19 @@ class FakeCluster:
 class FakePrioritiser:
     name = "prioritise"
 
+    def run(self, input: AgentInput) -> AgentOutput:
+        clusters = input.data if isinstance(input.data, list) else []
+        return AgentOutput(
+            data={"clusters": clusters},
+            success=True,
+            message="Prioritised",
+            tokens_used=0,
+        )
+
+
+class FakeSpecifier:
+    name = "specify"
+
     def __init__(self, tasks):
         self._tasks = tasks
 
@@ -120,7 +133,7 @@ class FakePrioritiser:
         return AgentOutput(
             data={"tasks": self._tasks},
             success=True,
-            message="Prioritised",
+            message="Specified",
             tokens_used=10,
         )
 
@@ -207,7 +220,8 @@ def _make_agents(clusters, tasks, writer_outputs=None, reviewer_verdicts=None,
     return {
         "filter": MagicMock(),  # Not used in batch
         "cluster": FakeCluster(clusters),
-        "prioritise": FakePrioritiser(tasks),
+        "prioritise": FakePrioritiser(),
+        "specify": FakeSpecifier(tasks),
         "write": FakeWriter(writer_outputs or [_writer_ok()]),
         "review": FakeReviewer(reviewer_verdicts or ["approve"]),
         "deploy": FakeDeployer(deploy_success),
@@ -225,7 +239,7 @@ class TestBatchHappyPath:
     def test_full_pipeline_marks_submissions_done(
         self, mock_budget, mock_embed, db_session, seed_pending,
     ):
-        """End-to-end: pending → cluster → prioritise → write → review → deploy → done."""
+        """End-to-end: pending → cluster → prioritise → specify → write → review → deploy → done."""
         mock_budget.return_value = _ok_budget()
 
         clusters = [{"references": seed_pending, "documents": ["Feedback item 1", "Feedback item 2", "Feedback item 3"]}]
@@ -261,7 +275,7 @@ class TestBatchHappyPath:
         )
         result = run_batch(config=PIPELINE_CONFIG, agents=agents, session=db_session)
 
-        # Prioritiser (10) + writer (300) + reviewer (50) = 360
+        # Specifier (10) + writer (300) + reviewer (50) = 360
         assert result["total_tokens"] == 360
 
     @patch("pipeline.batch.store_feedback_embedding", return_value=True)

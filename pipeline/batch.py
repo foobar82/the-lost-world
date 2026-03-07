@@ -4,7 +4,7 @@ Steps:
   1. Load config, check budget
   2. Get pending submissions from SQLite
   3. Backfill any missing embeddings
-  4. Cluster → prioritise → for each task: write → review (retry loop) → deploy
+  4. Cluster → prioritise → specify → for each task: write → review (retry loop) → deploy
   5. Update submission statuses throughout
   6. Log summary
 """
@@ -111,7 +111,7 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
     local : bool, optional
         When True, the writer and reviewer agents use a local Ollama
         model (llama3.1:8b) instead of the Anthropic API.  Everything
-        else (filter, cluster, prioritiser, deployer) runs as normal.
+        else (filter, cluster, prioritiser, specifier, deployer) runs as normal.
         Useful for smoke-testing the full pipeline without API credits.
 
     Returns
@@ -222,16 +222,22 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
     prioritise_input = AgentInput(data=clusters, context=cfg)
     prioritise_output: AgentOutput = agent_map["prioritise"].run(prioritise_input)
     summary["total_tokens"] += prioritise_output.tokens_used
+    clusters = prioritise_output.data.get("clusters", [])
 
-    tasks = prioritise_output.data.get("tasks", [])
+    # ── 6. Specify ───────────────────────────────────────────────────
+    specify_input = AgentInput(data=clusters, context=cfg)
+    specify_output: AgentOutput = agent_map["specify"].run(specify_input)
+    summary["total_tokens"] += specify_output.tokens_used
+
+    tasks = specify_output.data.get("tasks", [])
     if not tasks:
-        logger.info("No tasks after prioritisation")
+        logger.info("No tasks after specification")
         summary["budget_remaining"] = check_budget()
         if owns_session:
             session.close()
         return summary
 
-    # ── 6. Process each task: write → review → deploy ────────────────
+    # ── 7. Process each task: write → review → deploy ────────────────
     max_retries = cfg.get("max_writer_retries", PIPELINE_CONFIG["max_writer_retries"])
 
     for task in tasks:
@@ -377,7 +383,7 @@ def _print_dry_run_summary(summary: dict) -> None:
     print(f"  Submissions processed:    {summary['submissions_found']}")
     print(f"  Embeddings backfilled:    {summary['embeddings_backfilled']}")
     print(f"  Clusters found:           {summary['clusters_found']}")
-    print(f"  Tasks prioritised:        {summary['tasks_attempted']}")
+    print(f"  Tasks specified:          {summary['tasks_attempted']}")
     print(f"  Mock changes generated:   {summary['tasks_completed']}")
     print()
 
