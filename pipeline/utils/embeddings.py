@@ -80,8 +80,17 @@ def get_collection() -> chromadb.Collection:
     )
 
 
-def generate_embedding(text: str, ollama_url: str | None = None) -> list[float] | None:
+def generate_embedding(
+    text: str,
+    ollama_url: str | None = None,
+    task_prefix: str = "clustering: ",
+) -> list[float] | None:
     """Call Ollama to generate an embedding vector for *text*.
+
+    *task_prefix* is prepended to the text before embedding.  nomic-embed-text
+    uses task prefixes (e.g. ``"clustering: "``, ``"search_query: "``) to
+    produce embeddings suited to the task.  Defaults to ``"clustering: "``
+    because feedback clustering is the primary use case.
 
     Returns None if Ollama is unreachable or returns an error.
     """
@@ -89,7 +98,7 @@ def generate_embedding(text: str, ollama_url: str | None = None) -> list[float] 
     try:
         response = httpx.post(
             url,
-            json={"model": EMBEDDING_MODEL, "prompt": text},
+            json={"model": EMBEDDING_MODEL, "prompt": f"{task_prefix}{text}"},
             timeout=HTTP_TIMEOUT_SECONDS,
         )
         response.raise_for_status()

@@ -125,6 +125,10 @@ class ClusterAgent(Agent):
                 if rid not in ids:
                     # Not a pending submission — skip.
                     continue
+                logger.debug(
+                    "Distance %s -> %s: %.4f (threshold: %.4f)",
+                    ref_id, rid, dist, DISTANCE_THRESHOLD,
+                )
                 if dist <= DISTANCE_THRESHOLD:
                     cluster_refs.append(rid)
                     cluster_docs.append(rdoc)
