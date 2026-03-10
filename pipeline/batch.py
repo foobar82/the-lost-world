@@ -9,8 +9,10 @@ Steps:
   6. Log summary
 """
 
+import json
 import logging
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from sqlalchemy import create_engine
@@ -81,6 +83,46 @@ def _backfill_embeddings(
         if ok:
             backfilled += 1
     return backfilled
+
+
+# ── run output persistence ────────────────────────────────────────────
+
+
+def _save_run_output(
+    repo_path: str,
+    task_refs: list[str],
+    task_summary: str,
+    writer_data: dict | None,
+    reviewer_data: dict | None,
+    deploy_data: dict | None,
+    outcome: str,
+) -> None:
+    """Write writer/reviewer/deploy output to a JSON file under pipeline/data/runs/.
+
+    Files are named <ISO-timestamp>_<first-ref>.json so every task run is
+    preserved and easy to correlate with log output.
+    """
+    runs_dir = Path(repo_path) / "pipeline" / "data" / "runs"
+    runs_dir.mkdir(parents=True, exist_ok=True)
+
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H-%M-%SZ")
+    slug = task_refs[0] if task_refs else "unknown"
+    out_path = runs_dir / f"{ts}_{slug}.json"
+
+    payload: dict = {
+        "timestamp": ts,
+        "references": task_refs,
+        "summary": task_summary,
+        "outcome": outcome,
+        "writer": writer_data,
+        "reviewer": reviewer_data,
+        "deploy": deploy_data,
+    }
+    try:
+        out_path.write_text(json.dumps(payload, indent=2))
+        logger.info("Run output saved to %s", out_path.relative_to(repo_path))
+    except OSError as exc:
+        logger.warning("Could not save run output to %s: %s", out_path, exc)
 
 
 # ── main batch logic ──────────────────────────────────────────────────
@@ -272,6 +314,7 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
         # ── Write → Review retry loop ────────────────────────────────
         approved = False
         writer_data = None
+        reviewer_data = None
         reviewer_feedback = None
         attempts = 0
 
@@ -306,6 +349,7 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
                              attempts, reviewer_output.message)
                 break
 
+            reviewer_data = reviewer_output.data
             verdict = reviewer_output.data.get("verdict", "reject")
             if verdict == "approve":
                 approved = True
@@ -317,11 +361,13 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
                         attempts, max_retries + 1, reviewer_feedback[:200])
 
         # ── Deploy or roll back ──────────────────────────────────────
+        deploy_data: dict | None = None
         if approved and writer_data:
             deploy_input = AgentInput(data=writer_data, context=cfg)
             deploy_output: AgentOutput = agent_map["deploy"].run(deploy_input)
             summary["total_tokens"] += deploy_output.tokens_used
             task_detail["tokens"] += deploy_output.tokens_used
+            deploy_data = deploy_output.data
 
             if deploy_output.success:
                 if not dry_run:
@@ -340,6 +386,12 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
                 task_detail["outcome"] = "deploy_failed"
                 summary["tasks_failed"] += 1
                 logger.warning("Deploy failed: %s", deploy_output.message)
+                pipeline_stdout = deploy_output.data.get("pipeline_stdout", "")
+                pipeline_stderr = deploy_output.data.get("pipeline_stderr", "")
+                if pipeline_stdout:
+                    logger.warning("Pipeline stdout:\n%s", pipeline_stdout)
+                if pipeline_stderr:
+                    logger.warning("Pipeline stderr:\n%s", pipeline_stderr)
         else:
             # Review never approved — leave as pending.
             notes = f"Review rejected after {attempts} attempt(s)"
@@ -352,6 +404,16 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
             summary["tasks_failed"] += 1
             logger.warning("Task rejected after %d attempt(s): %s",
                            attempts, task.get("summary", "")[:100])
+
+        _save_run_output(
+            repo_path=cfg.get("repo_path", "."),
+            task_refs=task_refs,
+            task_summary=task.get("summary", ""),
+            writer_data=writer_data,
+            reviewer_data=reviewer_data,
+            deploy_data=deploy_data,
+            outcome=task_detail["outcome"],
+        )
 
         summary["details"].append(task_detail)
 

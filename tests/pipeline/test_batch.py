@@ -110,6 +110,19 @@ class FakeCluster:
         )
 
 
+class FakeTheme:
+    name = "theme"
+
+    def run(self, input: AgentInput) -> AgentOutput:
+        clusters = input.data if isinstance(input.data, list) else []
+        return AgentOutput(
+            data={"themes": clusters},
+            success=True,
+            message="Themed",
+            tokens_used=0,
+        )
+
+
 class FakePrioritiser:
     name = "prioritise"
 
@@ -220,6 +233,7 @@ def _make_agents(clusters, tasks, writer_outputs=None, reviewer_verdicts=None,
     return {
         "filter": MagicMock(),  # Not used in batch
         "cluster": FakeCluster(clusters),
+        "theme": FakeTheme(),
         "prioritise": FakePrioritiser(),
         "specify": FakeSpecifier(tasks),
         "write": FakeWriter(writer_outputs or [_writer_ok()]),
