@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from .database import get_db
 from .models import Feedback, FeedbackStatus
-from .schemas import FeedbackCreate, FeedbackCreatedResponse, FeedbackResponse
+from .schemas import FeedbackCreate, FeedbackCreatedResponse, FeedbackQueueClearedResponse, FeedbackResponse
 
 logger = logging.getLogger(__name__)
 
@@ -85,6 +85,18 @@ def get_feedback(reference: str, db: Session = Depends(get_db)):
     if feedback is None:
         raise HTTPException(status_code=404, detail="Feedback not found")
     return feedback
+
+
+@router.delete("", response_model=FeedbackQueueClearedResponse)
+def clear_feedback_queue(db: Session = Depends(get_db)):
+    """Delete all feedback items from the queue.
+
+    Useful for resetting the queue before an experiment.  All items are
+    removed regardless of their current status.
+    """
+    deleted = db.query(Feedback).delete()
+    db.commit()
+    return FeedbackQueueClearedResponse(deleted=deleted)
 
 
 @router.post("/{reference}/reactivate", response_model=FeedbackResponse)

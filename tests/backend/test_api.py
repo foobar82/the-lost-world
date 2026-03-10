@@ -353,3 +353,57 @@ class TestReactivateFeedback:
     def test_reactivate_nonexistent_returns_404(self, client):
         resp = client.post("/api/feedback/LW-999/reactivate")
         assert resp.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# DELETE /api/feedback  (clear queue)
+# ---------------------------------------------------------------------------
+
+
+class TestClearFeedbackQueue:
+    def test_clear_empty_queue_returns_zero(self, client):
+        resp = client.delete("/api/feedback")
+        assert resp.status_code == 200
+        assert resp.json() == {"deleted": 0}
+
+    def test_clear_removes_all_items_and_returns_count(self, client):
+        for msg in ["First", "Second", "Third"]:
+            client.post("/api/feedback", json={"content": msg})
+
+        resp = client.delete("/api/feedback")
+        assert resp.status_code == 200
+        assert resp.json() == {"deleted": 3}
+
+        # Queue is now empty
+        resp = client.get("/api/feedback")
+        assert resp.json() == []
+
+    def test_clear_removes_items_of_all_statuses(self, client, db_session):
+        from app.models import Feedback, FeedbackStatus
+
+        for msg in ["A", "B", "C", "D"]:
+            client.post("/api/feedback", json={"content": msg})
+
+        # Manually set varied statuses
+        statuses = [
+            FeedbackStatus.pending,
+            FeedbackStatus.in_progress,
+            FeedbackStatus.done,
+            FeedbackStatus.rejected,
+        ]
+        items = db_session.query(Feedback).order_by(Feedback.id).all()
+        for item, status in zip(items, statuses):
+            item.status = status
+        db_session.commit()
+
+        resp = client.delete("/api/feedback")
+        assert resp.status_code == 200
+        assert resp.json() == {"deleted": 4}
+
+    def test_clear_is_idempotent(self, client):
+        client.post("/api/feedback", json={"content": "Some feedback"})
+
+        client.delete("/api/feedback")
+        resp = client.delete("/api/feedback")
+        assert resp.status_code == 200
+        assert resp.json() == {"deleted": 0}

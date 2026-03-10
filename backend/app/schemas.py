@@ -24,3 +24,7 @@ class FeedbackResponse(BaseModel):
 class FeedbackCreatedResponse(BaseModel):
     reference: str
     status: FeedbackStatus
+
+
+class FeedbackQueueClearedResponse(BaseModel):
+    deleted: int
