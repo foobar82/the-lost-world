@@ -1,7 +1,9 @@
 """Tests for the agent registry and base interface (Phase 3)."""
 
+import json
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -11,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from pipeline.agents.base import Agent, AgentInput, AgentOutput  # noqa: E402
 from pipeline.registry import AGENTS  # noqa: E402
 
-EXPECTED_KEYS = {"filter", "cluster", "prioritise", "specify", "write", "review", "deploy"}
+EXPECTED_KEYS = {"filter", "cluster", "theme", "prioritise", "specify", "write", "review", "deploy"}
 
 
 # ---------------------------------------------------------------------------
@@ -58,6 +60,33 @@ class TestInterfaceCompliance:
 
 
 class TestSkeletonExecution:
+    @pytest.fixture(autouse=True)
+    def _mock_anthropic(self):
+        """Prevent real Anthropic API calls when the skeleton tests run write/review."""
+        writer_resp = MagicMock()
+        writer_resp.content = [MagicMock(text=json.dumps(
+            {"changes": [], "summary": "", "reasoning": ""}
+        ))]
+        writer_resp.usage = MagicMock(input_tokens=0, output_tokens=0)
+
+        reviewer_resp = MagicMock()
+        reviewer_resp.content = [MagicMock(text=json.dumps(
+            {"verdict": "approve", "comments": "", "issues": []}
+        ))]
+        reviewer_resp.usage = MagicMock(input_tokens=0, output_tokens=0)
+
+        with (
+            patch("pipeline.agents.writer_agent.check_budget", return_value={"allowed": True}),
+            patch("pipeline.agents.writer_agent.record_usage"),
+            patch("pipeline.agents.reviewer_agent.check_budget", return_value={"allowed": True}),
+            patch("pipeline.agents.reviewer_agent.record_usage"),
+            patch("pipeline.agents.writer_agent.anthropic.Anthropic") as mock_wa,
+            patch("pipeline.agents.reviewer_agent.anthropic.Anthropic") as mock_ra,
+        ):
+            mock_wa.return_value.messages.create.return_value = writer_resp
+            mock_ra.return_value.messages.create.return_value = reviewer_resp
+            yield
+
     @pytest.mark.parametrize("step_name", sorted(EXPECTED_KEYS))
     def test_run_returns_agent_output(self, step_name):
         agent = AGENTS[step_name]
