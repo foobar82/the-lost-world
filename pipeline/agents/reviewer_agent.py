@@ -122,18 +122,6 @@ class ReviewerAgent(Agent):
         repo_path = context.get("repo_path", ".")
         model = context.get("reviewer_model", DEFAULT_REVIEWER_MODEL)
 
-        # Check budget before making an expensive API call.
-        budget = check_budget()
-        if not budget["allowed"]:
-            logger.warning("Budget exhausted — skipping review")
-            return AgentOutput(
-                data={"verdict": "reject", "comments": "Budget exhausted",
-                      "issues": []},
-                success=False,
-                message="Budget exhausted — cannot review changes",
-                tokens_used=0,
-            )
-
         changes = writer_data.get("changes", []) if isinstance(writer_data, dict) else []
         summary = writer_data.get("summary", "") if isinstance(writer_data, dict) else ""
         reasoning = writer_data.get("reasoning", "") if isinstance(writer_data, dict) else ""
@@ -144,6 +132,18 @@ class ReviewerAgent(Agent):
                       "issues": []},
                 success=True,
                 message="No changes to review — auto-approved",
+                tokens_used=0,
+            )
+
+        # Check budget before making an expensive API call.
+        budget = check_budget()
+        if not budget["allowed"]:
+            logger.warning("Budget exhausted — skipping review")
+            return AgentOutput(
+                data={"verdict": "reject", "comments": "Budget exhausted",
+                      "issues": []},
+                success=False,
+                message="Budget exhausted — cannot review changes",
                 tokens_used=0,
             )
 
