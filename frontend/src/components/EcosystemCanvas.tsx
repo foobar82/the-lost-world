@@ -37,7 +37,7 @@ import {
 const CLIFF_COLOUR = "#6B4F3A";
 const PLATEAU_COLOUR = "#4A7C3F";
 const WATER_COLOUR = "rgba(70, 140, 200, 0.6)";
-const PLANT_COLOUR = "#2D8C2D";
+const PLANT_COLOUR = "#B8860B";
 const HERBIVORE_COLOUR = "#8B6914";
 const PREDATOR_COLOUR = "#C0392B";
 
@@ -112,6 +112,15 @@ function drawWater(ctx: CanvasRenderingContext2D): void {
 
 function drawPlant(ctx: CanvasRenderingContext2D, e: Entity): void {
   const alpha = ENTITY_ALPHA_MIN + (e.energy / MAX_ENERGY) * ENTITY_ALPHA_RANGE;
+  
+  // Draw a dark outline for better visibility
+  ctx.fillStyle = "#4A4A4A";
+  ctx.globalAlpha = alpha * 0.8;
+  ctx.beginPath();
+  ctx.arc(e.x, e.y, PLANT_RADIUS + 1, 0, Math.PI * 2);
+  ctx.fill();
+  
+  // Draw the main plant body
   ctx.fillStyle = PLANT_COLOUR;
   ctx.globalAlpha = alpha;
   ctx.beginPath();
