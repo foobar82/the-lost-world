@@ -531,12 +531,30 @@ if __name__ == "__main__":
             "else runs as normal.  Useful for smoke-testing the pipeline."
         ),
     )
+    parser.add_argument(
+        "--mark-done",
+        nargs="+",
+        metavar="REF",
+        help="Mark specific feedback references as done (skips all agent processing).",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(name)s %(levelname)s %(message)s",
     )
+
+    if args.mark_done:
+        session = _get_db_session(PIPELINE_CONFIG["db_url"])
+        _update_status(
+            session,
+            args.mark_done,
+            FeedbackStatus.done,
+            agent_notes="Marked done manually after confirmed successful deployment",
+        )
+        session.close()
+        print(f"Marked {len(args.mark_done)} reference(s) as done: {args.mark_done}")
+        raise SystemExit(0)
 
     if not args.local and not args.dry_run:
         logger.info("=== Running with API models (production) ===")
