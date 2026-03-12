@@ -4,9 +4,9 @@
 
 An experiment in agentic architecture: a lightweight app that evolves autonomously through user feedback. The core loop:
 
-1. Users provide feedback through the app itself
-2. Feedback is processed and prioritised by an agent pipeline
-3. Agents generate and deploy the update
+1. Users provide feedback through the app itself <!-- completed -->
+2. Feedback is processed and prioritised by an agent pipeline <!-- completed -->
+3. Agents generate and deploy the update <!-- completed -->
 4. Users see changes and provide feedback the next day
 
 The app is a vehicle for the experiment. The goal is to learn about agentic patterns, not to build a commercial product.
@@ -16,20 +16,20 @@ The app is a vehicle for the experiment. The goal is to learn about agentic patt
 ## The App: The Lost World Plateau
 
 ### Concept
-A bounded 2D ecosystem — "The Lost World plateau" — that evolves daily through user requests. The hook is watching autonomous evolution in action, with a deliberate meta-reference to biological evolution.
+A bounded 2D ecosystem — "The Lost World plateau" — that evolves daily through user requests. The hook is watching autonomous evolution in action, with a deliberate meta-reference to biological evolution. <!-- completed -->
 
 ### Day-One Scope
-- **Rendering:** HTML Canvas
-- **Ecosystem:** Constrained plateau with one terrain feature (water source)
-- **Starting species:** Plants, herbivores, one predator
-- **Behaviours:** Move, eat, reproduce, die
-- **Energy system:** Eat to gain energy, move to spend it, reproduce costs energy
-- **Feedback interface:** Simple text box ("What should we add or change?")
+- **Rendering:** HTML Canvas <!-- completed -->
+- **Ecosystem:** Constrained plateau with one terrain feature (water source) <!-- completed -->
+- **Starting species:** Plants, herbivores, one predator <!-- completed -->
+- **Behaviours:** Move, eat, reproduce, die <!-- completed -->
+- **Energy system:** Eat to gain energy, move to spend it, reproduce costs energy <!-- completed -->
+- **Feedback interface:** Simple text box ("What should we add or change?") <!-- completed -->
 - Species characteristics beyond herbivore/carnivore/plant deferred to user requests
 
 ### Design Principles
-- Immediately understandable — no onboarding, no learning curve
-- Visibly improvable — obvious gaps that invite suggestions
+- Immediately understandable — no onboarding, no learning curve <!-- completed -->
+- Visibly improvable — obvious gaps that invite suggestions <!-- completed -->
 - Fun to check back on — people return to see what changed
 - The feedback mechanism itself is subject to evolution
 
@@ -38,43 +38,43 @@ A bounded 2D ecosystem — "The Lost World plateau" — that evolves daily throu
 ## Technical Architecture
 
 ### Tech Stack
-- **Frontend:** React (single-page app, HTML Canvas for ecosystem rendering)
-- **Backend:** FastAPI (Python)
-- **Vector DB:** ChromaDB
-- **Local LLM runtime:** Ollama
-- **Source control:** Git monorepo (frontend + backend + agent pipeline)
+- **Frontend:** React (single-page app, HTML Canvas for ecosystem rendering) <!-- completed -->
+- **Backend:** FastAPI (Python) <!-- completed -->
+- **Vector DB:** ChromaDB <!-- completed -->
+- **Local LLM runtime:** Ollama <!-- completed -->
+- **Source control:** Git monorepo (frontend + backend + agent pipeline) <!-- completed -->
 
 ### Infrastructure
 - **Development:** Windows desktop
 - **Production:** Wiped MacBook M3 16GB, running as a dedicated server (clean OS, sleep disabled, ethernet)
-- **Exposure:** Cloudflare Tunnel (no port forwarding needed)
+- **Exposure:** Cloudflare Tunnel (no port forwarding needed) <!-- completed -->
 - **Accepted risk:** Home internet or hardware failure takes the app offline; acceptable for an experiment
 
 ### Agent Ecosystem
-- **Local models (Ollama, 7-8B on MacBook M3):** Cheap tasks — evil filtering, embedding generation, clustering, agent notes for queue
-- **API models (Claude/GPT-4o):** Expensive tasks — code writing, code review
-- **Orchestration:** Simple Python script with plugin pattern — each agent is a module with a standard interface (`run(input) → output`). No framework; YAGNI. Migrate to a framework later if complexity demands it.
-- **Modularity:** Standard interface per agent step allows swapping models/providers without changing the pipeline
+- **Local models (Ollama, 7-8B on MacBook M3):** Cheap tasks — evil filtering, embedding generation, clustering, agent notes for queue <!-- completed -->
+- **API models (Claude/GPT-4o):** Expensive tasks — code writing, code review <!-- completed -->
+- **Orchestration:** Simple Python script with plugin pattern — each agent is a module with a standard interface (`run(input) → output`). No framework; YAGNI. Migrate to a framework later if complexity demands it. <!-- completed -->
+- **Modularity:** Standard interface per agent step allows swapping models/providers without changing the pipeline <!-- completed -->
 
 ### Processing Split
 
 **Submission-time (local, per request):**
-- Evil filtering (local LLM)
-- Embedding generation and clustering (ChromaDB)
+- Evil filtering (local LLM) <!-- completed -->
+- Embedding generation and clustering (ChromaDB) <!-- completed -->
 
 **Batch-time (daily):**
-- Prioritise clusters by request volume
-- Write code (API model)
-- Review code (different API model)
+- Prioritise clusters by request volume <!-- completed -->
+- Write code (API model) <!-- completed -->
+- Review code (different API model) <!-- completed -->
 - Evil-detection deployment review
-- Deploy
+- Deploy <!-- completed -->
 
 ### Deployment Pipeline
-1. Agent commits to feature branch (atomic per request)
-2. Automated tests run (essential test suite + deterministic checks)
-3. Review agent approves
-4. Merge to main
-5. Auto-deploy from main (git pull + process restart)
+1. Agent commits to feature branch (atomic per request) <!-- completed -->
+2. Automated tests run (essential test suite + deterministic checks) <!-- completed -->
+3. Review agent approves <!-- completed -->
+4. Merge to main <!-- completed -->
+5. Auto-deploy from main (git pull + process restart) <!-- completed -->
 
 ---
 
@@ -82,15 +82,15 @@ A bounded 2D ecosystem — "The Lost World plateau" — that evolves daily throu
 
 ### Deployment Model
 - **Goal:** Full autonomy with a human emergency brake
-- **Commits:** Atomic per feature request
-- **Deployments:** Batched (multiple atomic commits per deployment)
+- **Commits:** Atomic per feature request <!-- completed -->
+- **Deployments:** Batched (multiple atomic commits per deployment) <!-- completed -->
 - **Rollback:** Reverse-chronological order within a batch; rolling back one commit means rolling back everything after it too
 - **Emergency brake:** Stops current change, pauses future changes, offers option to roll back further
 
 ### Multi-Agent Review
-- Agent 1 writes, Agent 2 reviews
+- Agent 1 writes, Agent 2 reviews <!-- completed -->
 - **Multi-model approach:** Different underlying models for writer and reviewer to avoid correlated blind spots
-- **Modular design:** Agents/models can be swapped per role to test capabilities
+- **Modular design:** Agents/models can be swapped per role to test capabilities <!-- completed -->
 
 ### Sandboxing & Security
 - Dedicated VM/container with no outbound access except via explicit proxy
@@ -98,14 +98,14 @@ A bounded 2D ecosystem — "The Lost World plateau" — that evolves daily throu
 - No SSH out, no arbitrary HTTP, no email, no unexpected DNS
 
 ### Architectural Constitution
-- **Static contract file:** Unmodifiable by agents; read before planning any work. Defines invariants (e.g. "app must have a landing page," "all routes must be reachable," "user data must not be exposed")
-- **Essential test suite:** Human-maintained only; runs regardless of what the app currently does
+- **Static contract file:** Unmodifiable by agents; read before planning any work. Defines invariants (e.g. "app must have a landing page," "all routes must be reachable," "user data must not be exposed") <!-- completed -->
+- **Essential test suite:** Human-maintained only; runs regardless of what the app currently does <!-- completed -->
 - **Constitutional amendment process:** Agents can flag "core purpose has shifted and the test suite is causing problems" via a ring-fenced communications channel. Humans approve or reject changes to the contract/test suite.
 - **Ring-fenced comms channel:** Implementation TBD (Slack, email, or a dedicated page in the app)
 
 ### Code Quality
-- Deterministic checks (linting, static analysis) + agentic review
-- Specific linting/static analysis tooling TBD
+- Deterministic checks (linting, static analysis) + agentic review <!-- completed -->
+- Specific linting/static analysis tooling TBD <!-- completed -->
 
 ### Observability & Degradation Detection
 
@@ -128,33 +128,33 @@ Leading indicators (in order of ease of detection):
 ## Business Process
 
 ### Batch Cadence
-- **Daily** — one batch per day, gives natural "episode" structure for blog posts
+- **Daily** — one batch per day, gives natural "episode" structure for blog posts <!-- completed -->
 - Can be adjusted later if needed
 
 ### Prioritisation Pipeline
-1. Reject evil/abusive requests (LLM filter)
-2. Cluster remaining requests by similarity (embedding-based)
-3. Prioritise clusters with the most requests
+1. Reject evil/abusive requests (LLM filter) <!-- completed -->
+2. Cluster remaining requests by similarity (embedding-based) <!-- completed -->
+3. Prioritise clusters with the most requests <!-- completed -->
 4. Upvote/downvote system — planned as a self-requested enhancement
 
 ### Cost Management
 - **Primary cost:** LLM API calls only (~£1-5 per daily cycle)
 - **Hosting cost:** Effectively zero — just electricity and internet
-- **Daily cap:** £2
-- **Weekly cap:** £8
-- **Over-cap behaviour:** In-flight work pauses, remaining requests roll over to next day, status message displayed in the queue
+- **Daily cap:** £2 <!-- completed -->
+- **Weekly cap:** £8 <!-- completed -->
+- **Over-cap behaviour:** In-flight work pauses, remaining requests roll over to next day, status message displayed in the queue <!-- completed -->
 
 ---
 
 ## User Experience of the Feedback Loop
 
 ### Day-One UX
-- **Submit:** Simple text box on the page
-- **Acknowledgement:** Reference number returned on submission
-- **Visibility:** Public queue showing all pending requests
+- **Submit:** Simple text box on the page <!-- completed -->
+- **Acknowledgement:** Reference number returned on submission <!-- completed -->
+- **Visibility:** Public queue showing all pending requests <!-- completed -->
 - **Transparency:** Full agent decision-making exposed — why a request was picked, how it was implemented
-- **Completion:** "Done" requests visible with agent notes on what was built
-- **No notifications:** Users check back manually
+- **Completion:** "Done" requests visible with agent notes on what was built <!-- completed -->
+- **No notifications:** Users check back manually <!-- completed -->
 
 ### Planned Self-Requested Enhancements
 - Patch notes / "naturalist's log" per deployment
@@ -165,7 +165,7 @@ Leading indicators (in order of ease of detection):
 ## Evaluation & Observability
 
 ### Day-One Metrics (Automated)
-- **Deploy without breaking** — basic health check post-deployment
+- **Deploy without breaking** — basic health check post-deployment <!-- completed -->
 - **Request completion rate** — requests addressed vs. requests in batch
 - **Code churn** — lines changed, files touched, percentage of codebase modified per cycle (git stats at PR level)
 - Leading indicators from guardrails section (bundle size, Lighthouse, web vitals, etc.)
@@ -176,7 +176,7 @@ Leading indicators (in order of ease of detection):
 - Request fidelity scoring (did the agent build what was asked for?)
 
 ### Scope & Drift Management
-- **Contract file** explicitly constrains scope to ecosystem simulator
+- **Contract file** explicitly constrains scope to ecosystem simulator <!-- completed -->
 - If community consistently pushes beyond this boundary, agents flag via the constitutional amendment channel
 - **Human decides** whether to relax constraints, fork into a separate mini-app, or hold the line
 - Start constrained; loosening is easy, tightening after the fact is hard
@@ -186,23 +186,23 @@ Leading indicators (in order of ease of detection):
 ## Legal & Ethical
 
 ### Users
-- **Anonymous** — no accounts, no login
-- Lowers GDPR/data protection surface (no PII)
+- **Anonymous** — no accounts, no login <!-- completed -->
+- Lowers GDPR/data protection surface (no PII) <!-- completed -->
 - Reduces barrier to participation (helps cold-start)
 
 ### Input Filtering
-- LLM filter on all user submissions before they enter the pipeline
+- LLM filter on all user submissions before they enter the pipeline <!-- completed -->
 - Rate limiting by IP/session token to prevent spam/flooding
 
 ### Intellectual Property
 - User submissions treated as unowned suggestions (no claim on output)
 - All generated code owned by Henry
-- **Licence:** Apache 2.0 with a CONTRIBUTORS file convention
+- **Licence:** Apache 2.0 with a CONTRIBUTORS file convention <!-- completed -->
 - AI-generated code copyrightability is legally unsettled; permissive licence sidesteps this
 
 ### Liability & Terms of Service
 - Simple terms of service with "as-is, no warranty" disclaimer
-- **Terms of service protected in the contract file** — agents cannot modify or remove it
+- **Terms of service protected in the contract file** — agents cannot modify or remove it <!-- completed -->
 - Dedicated evil-detection agent reviews each deployment and flags problematic output, feeding into the pause mechanism
 
 ### Privacy & Data Handling
@@ -258,42 +258,42 @@ Leading indicators (in order of ease of detection):
 - Wipe MacBook, install clean OS (Ubuntu Server or macOS)
 - Set up development environment on Windows desktop
 - Create accounts: GitHub, Anthropic API, OpenAI API, Cloudflare
-- Initialise monorepo, set up basic project structure
+- Initialise monorepo, set up basic project structure <!-- completed -->
 
 **Week 2: Build the app**
-- React frontend with HTML Canvas ecosystem (plants, herbivores, predator, water source)
-- FastAPI backend (serve app, accept feedback submissions, store in SQLite or similar)
-- Basic feedback text box and queue display
-- Deploy locally, expose via Cloudflare Tunnel
+- React frontend with HTML Canvas ecosystem (plants, herbivores, predator, water source) <!-- completed -->
+- FastAPI backend (serve app, accept feedback submissions, store in SQLite or similar) <!-- completed -->
+- Basic feedback text box and queue display <!-- completed -->
+- Deploy locally, expose via Cloudflare Tunnel <!-- completed -->
 
 **Week 3: Build the pipeline**
-- Install Ollama on MacBook, set up local model for filtering
-- Set up ChromaDB for embeddings
-- Build the agent plugin framework (standard interface)
-- Wire up one API model for code writing
-- Write the daily batch script (prioritise → write → deploy)
+- Install Ollama on MacBook, set up local model for filtering <!-- completed -->
+- Set up ChromaDB for embeddings <!-- completed -->
+- Build the agent plugin framework (standard interface) <!-- completed -->
+- Wire up one API model for code writing <!-- completed -->
+- Write the daily batch script (prioritise → write → deploy) <!-- completed -->
 
 **Week 4: Close the loop**
 - Submit own feedback requests
-- Run the full pipeline end-to-end (manually triggered)
-- Write the contract file and essential test suite
+- Run the full pipeline end-to-end (manually triggered) <!-- completed -->
+- Write the contract file and essential test suite <!-- completed -->
 - First blog post: "What I'm building and why"
 - **Milestone: Minimum success achieved ✅**
 
 ### Month 2: Autonomy — "Let it run unsupervised"
 
 **Weeks 5-6: Guardrails**
-- Add the review agent (second model)
-- Implement the deployment pipeline (feature branch → tests → review → merge → auto-deploy)
-- Set up deterministic checks (linting, basic tests)
+- Add the review agent (second model) <!-- completed -->
+- Implement the deployment pipeline (feature branch → tests → review → merge → auto-deploy) <!-- completed -->
+- Set up deterministic checks (linting, basic tests) <!-- completed -->
 - Implement emergency brake mechanism
-- Add budget caps and over-cap behaviour
+- Add budget caps and over-cap behaviour <!-- completed -->
 
 **Weeks 7-8: Observability and polish**
 - Add day-one metrics (build size, Lighthouse, code churn tracking)
 - Set up hard/soft threshold alerts
 - Automate the daily batch via cron
-- Add reference numbers and agent notes to the queue display
+- Add reference numbers and agent notes to the queue display <!-- completed -->
 - Submit self-requested enhancements (naturalist's log, history timeline)
 - **Milestone: Fully autonomous daily loop running**
 
@@ -317,7 +317,7 @@ Leading indicators (in order of ease of detection):
 
 ## Open Questions
 
-- Specific linting and static analysis tooling for code quality checks
+- Specific linting and static analysis tooling for code quality checks <!-- completed -->
 - Ring-fenced comms channel implementation (Slack, email, or in-app?)
 - Specific hard/soft threshold values for observability alerts
-- Detailed contract file contents
+- Detailed contract file contents <!-- completed -->
