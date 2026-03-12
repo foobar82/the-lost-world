@@ -24,4 +24,6 @@ PIPELINE_CONFIG = {
     "db_url": _db_url,
     "cluster_distance_threshold": 0.35,
     "cluster_distance_metric": "cosine",
+    "max_tasks_per_run": 2,
+    "max_tasks_per_day": 4,
 }

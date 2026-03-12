@@ -748,3 +748,120 @@ class TestBatchSummary:
         assert "daily_remaining" in budget
         assert "weekly_remaining" in budget
         assert "allowed" in budget
+
+
+# ---------------------------------------------------------------------------
+# Tests — task rate limiting
+# ---------------------------------------------------------------------------
+
+
+class TestBatchTaskRateLimiting:
+    @patch("pipeline.batch.store_feedback_embedding", return_value=True)
+    @patch("pipeline.batch.check_budget")
+    def test_per_run_limit_caps_tasks_attempted(
+        self, mock_budget, mock_embed, db_session, seed_pending,
+    ):
+        """With max_tasks_per_run=2 and 3 tasks, only 2 should be attempted."""
+        mock_budget.return_value = _ok_budget()
+
+        clusters = [
+            {"references": [seed_pending[i]], "documents": [f"Feedback item {i+1}"]}
+            for i in range(3)
+        ]
+        tasks = [
+            {"references": [seed_pending[i]], "summary": f"Task {i+1}",
+             "documents": [f"Feedback item {i+1}"], "cluster_size": 1}
+            for i in range(3)
+        ]
+
+        agents = _make_agents(
+            clusters, tasks,
+            writer_outputs=[_writer_ok("A"), _writer_ok("B"), _writer_ok("C")],
+            reviewer_verdicts=["approve", "approve", "approve"],
+        )
+
+        cfg = dict(PIPELINE_CONFIG, max_tasks_per_run=2, max_tasks_per_day=10)
+        result = run_batch(config=cfg, agents=agents, session=db_session)
+
+        assert result["tasks_attempted"] == 2
+        assert result["tasks_rate_limited"] is True
+
+    @patch("pipeline.batch.store_feedback_embedding", return_value=True)
+    @patch("pipeline.batch.check_budget")
+    def test_daily_limit_aborts_batch_at_start(
+        self, mock_budget, mock_embed, db_session, seed_pending, _tmp_budget_file,
+    ):
+        """When daily task limit is already reached, batch aborts immediately."""
+        mock_budget.return_value = _ok_budget()
+
+        # Pre-seed budget file with 4 tasks already done today.
+        import json
+        from datetime import datetime as dt, timezone as tz
+        today = dt.now(tz.utc).strftime("%Y-%m-%d")
+        _tmp_budget_file.write_text(json.dumps({
+            "daily": {}, "weekly": {}, "tasks_daily": {today: 4},
+        }))
+
+        cfg = dict(PIPELINE_CONFIG, max_tasks_per_run=2, max_tasks_per_day=4)
+        result = run_batch(config=cfg, agents=None, session=db_session)
+
+        assert result["tasks_attempted"] == 0
+        assert result["tasks_rate_limited"] is True
+
+    @patch("pipeline.batch.store_feedback_embedding", return_value=True)
+    @patch("pipeline.batch.check_budget")
+    def test_daily_limit_stops_mid_batch(
+        self, mock_budget, mock_embed, db_session, seed_pending, _tmp_budget_file,
+    ):
+        """With 3 tasks done today and max_per_day=4, only 1 more should be attempted."""
+        mock_budget.return_value = _ok_budget()
+
+        import json
+        from datetime import datetime as dt, timezone as tz
+        today = dt.now(tz.utc).strftime("%Y-%m-%d")
+        _tmp_budget_file.write_text(json.dumps({
+            "daily": {}, "weekly": {}, "tasks_daily": {today: 3},
+        }))
+
+        clusters = [
+            {"references": [seed_pending[i]], "documents": [f"Feedback item {i+1}"]}
+            for i in range(3)
+        ]
+        tasks = [
+            {"references": [seed_pending[i]], "summary": f"Task {i+1}",
+             "documents": [f"Feedback item {i+1}"], "cluster_size": 1}
+            for i in range(3)
+        ]
+
+        agents = _make_agents(
+            clusters, tasks,
+            writer_outputs=[_writer_ok("A"), _writer_ok("B"), _writer_ok("C")],
+            reviewer_verdicts=["approve", "approve", "approve"],
+        )
+
+        cfg = dict(PIPELINE_CONFIG, max_tasks_per_run=10, max_tasks_per_day=4)
+        result = run_batch(config=cfg, agents=agents, session=db_session)
+
+        assert result["tasks_attempted"] == 1
+        assert result["tasks_rate_limited"] is True
+
+    @patch("pipeline.batch.store_feedback_embedding", return_value=True)
+    @patch("pipeline.batch.check_budget")
+    def test_summary_includes_rate_limited_field(
+        self, mock_budget, mock_embed, db_session, seed_pending,
+    ):
+        """Summary always has a tasks_rate_limited field."""
+        mock_budget.return_value = _ok_budget()
+
+        tasks = [{"references": seed_pending, "summary": "Task",
+                  "documents": [], "cluster_size": 3}]
+        agents = _make_agents(
+            [{"references": seed_pending, "documents": []}],
+            tasks,
+        )
+
+        cfg = dict(PIPELINE_CONFIG, max_tasks_per_run=10, max_tasks_per_day=10)
+        result = run_batch(config=cfg, agents=agents, session=db_session)
+
+        assert "tasks_rate_limited" in result
+        assert result["tasks_rate_limited"] is False

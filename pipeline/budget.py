@@ -60,6 +60,33 @@ def record_usage(tokens: int) -> None:
                 tokens, cost, data["daily"][today], data["weekly"][week])
 
 
+def record_task() -> None:
+    """Record that one task was built, incrementing today's task counter."""
+    data = _load_budget()
+    today = _today_str()
+    data.setdefault("tasks_daily", {})
+    data["tasks_daily"][today] = data["tasks_daily"].get(today, 0) + 1
+    _save_budget(data)
+    logger.info("Recorded task — daily total: %d", data["tasks_daily"][today])
+
+
+def check_task_limits(max_per_day: int) -> dict:
+    """Return daily task count and whether more tasks are allowed.
+
+    Returns a dict with keys:
+        today_count, daily_remaining, daily_allowed (bool)
+    """
+    data = _load_budget()
+    today = _today_str()
+    today_count = data.get("tasks_daily", {}).get(today, 0)
+    daily_remaining = max(0, max_per_day - today_count)
+    return {
+        "today_count": today_count,
+        "daily_remaining": daily_remaining,
+        "daily_allowed": daily_remaining > 0,
+    }
+
+
 def check_budget() -> dict:
     """Return remaining daily and weekly budget in GBP.
 
