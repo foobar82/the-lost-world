@@ -28,6 +28,10 @@ def _ephemeral_chromadb():
     client = chromadb.EphemeralClient()
     set_chromadb_client(client)
     yield
+    try:
+        client.delete_collection("feedback_embeddings")
+    except Exception:
+        pass
     set_chromadb_client(None)
 
 
