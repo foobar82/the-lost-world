@@ -45,6 +45,22 @@
   flex: 0 0 auto;
 }
 
+/* --- Footer --- */
+
+.app__footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #D4C5B0;
+  font-size: 0.8rem;
+  color: #7A6652;
+}
+
+.app__footer a {
+  color: #7A6652;
+  text-decoration: underline;
+}
+
 @media (min-width: 960px) {
   .app__main {
     flex-direction: row;

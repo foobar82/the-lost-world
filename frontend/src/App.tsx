@@ -17,6 +17,9 @@ function App() {
           <FeedbackPanel />
         </aside>
       </main>
+      <footer className="app__footer">
+        <a href="/terms-of-service.md">Terms of Service</a>
+      </footer>
     </div>
   );
 }
