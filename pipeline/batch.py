@@ -27,7 +27,7 @@ from backend.app.database import Base  # noqa: E402
 from backend.app.models import Feedback, FeedbackStatus  # noqa: E402
 
 from pipeline.agents.base import AgentInput, AgentOutput  # noqa: E402
-from pipeline.budget import COST_PER_TOKEN_GBP, check_budget  # noqa: E402
+from pipeline.budget import COST_PER_TOKEN_GBP, check_budget, check_task_limits, record_task  # noqa: E402
 from pipeline.config import PIPELINE_CONFIG  # noqa: E402
 from pipeline.registry import AGENTS  # noqa: E402
 from pipeline.utils.embeddings import store_feedback_embedding  # noqa: E402
@@ -202,6 +202,7 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
         "tasks_failed": 0,
         "total_tokens": 0,
         "budget_remaining": {},
+        "tasks_rate_limited": False,
         "details": [],
     }
 
@@ -210,6 +211,16 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
     if not budget["allowed"]:
         logger.warning("Budget exceeded — aborting batch. %s", budget)
         summary["budget_remaining"] = budget
+        return summary
+
+    # ── 1b. Check daily task limit ──────────────────────────────────
+    max_tasks_per_day = cfg.get("max_tasks_per_day", PIPELINE_CONFIG["max_tasks_per_day"])
+    task_limits = check_task_limits(max_tasks_per_day)
+    if not task_limits["daily_allowed"]:
+        logger.warning("Daily task limit reached (%d/%d) — aborting batch",
+                        task_limits["today_count"], max_tasks_per_day)
+        summary["budget_remaining"] = budget
+        summary["tasks_rate_limited"] = True
         return summary
 
     # ── 2. Get pending submissions ───────────────────────────────────
@@ -290,8 +301,24 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
 
     # ── 7. Process each task: write → review → deploy ────────────────
     max_retries = cfg.get("max_writer_retries", PIPELINE_CONFIG["max_writer_retries"])
+    max_tasks_per_run = cfg.get("max_tasks_per_run", PIPELINE_CONFIG["max_tasks_per_run"])
+    tasks_built_this_run = 0
 
     for task in tasks:
+        # Per-run task limit.
+        if tasks_built_this_run >= max_tasks_per_run:
+            logger.warning("Per-run task limit reached (%d) — stopping",
+                           max_tasks_per_run)
+            summary["tasks_rate_limited"] = True
+            break
+
+        # Re-check daily task limit before each task.
+        task_limits = check_task_limits(max_tasks_per_day)
+        if not task_limits["daily_allowed"]:
+            logger.warning("Daily task limit reached mid-batch — stopping")
+            summary["tasks_rate_limited"] = True
+            break
+
         # Re-check budget before each expensive task.
         budget = check_budget()
         if not budget["allowed"]:
@@ -415,6 +442,8 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
             outcome=task_detail["outcome"],
         )
 
+        tasks_built_this_run += 1
+        record_task()
         summary["details"].append(task_detail)
 
     # ── 7. Final summary ─────────────────────────────────────────────

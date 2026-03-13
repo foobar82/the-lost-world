@@ -17,6 +17,8 @@ from pipeline.budget import (  # noqa: E402
     _load_budget,
     _save_budget,
     check_budget,
+    check_task_limits,
+    record_task,
     record_usage,
 )
 
@@ -190,3 +192,72 @@ class TestPersistence:
         _save_budget(original)
         loaded = _load_budget()
         assert loaded == original
+
+
+# ---------------------------------------------------------------------------
+# Task rate limiting
+# ---------------------------------------------------------------------------
+
+
+class TestRecordTask:
+    def test_increments_daily_count(self, _tmp_budget_file):
+        record_task()
+        data = json.loads(_tmp_budget_file.read_text())
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        assert data["tasks_daily"][today] == 1
+
+    def test_accumulates_multiple_calls(self, _tmp_budget_file):
+        record_task()
+        record_task()
+        record_task()
+        data = json.loads(_tmp_budget_file.read_text())
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        assert data["tasks_daily"][today] == 3
+
+    def test_does_not_affect_spend_tracking(self, _tmp_budget_file):
+        record_task()
+        record_usage(1000)
+        data = json.loads(_tmp_budget_file.read_text())
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        assert data["tasks_daily"][today] == 1
+        assert data["daily"][today] == pytest.approx(1000 * COST_PER_TOKEN_GBP)
+
+
+class TestCheckTaskLimits:
+    def test_fresh_state_allows_tasks(self):
+        result = check_task_limits(max_per_day=4)
+        assert result["today_count"] == 0
+        assert result["daily_remaining"] == 4
+        assert result["daily_allowed"] is True
+
+    def test_partial_count_reduces_remaining(self):
+        record_task()
+        record_task()
+        result = check_task_limits(max_per_day=4)
+        assert result["today_count"] == 2
+        assert result["daily_remaining"] == 2
+        assert result["daily_allowed"] is True
+
+    def test_at_limit_blocks(self):
+        for _ in range(4):
+            record_task()
+        result = check_task_limits(max_per_day=4)
+        assert result["today_count"] == 4
+        assert result["daily_remaining"] == 0
+        assert result["daily_allowed"] is False
+
+    def test_over_limit_remaining_never_negative(self):
+        for _ in range(6):
+            record_task()
+        result = check_task_limits(max_per_day=4)
+        assert result["daily_remaining"] == 0
+        assert result["daily_allowed"] is False
+
+    def test_yesterday_does_not_count(self, _tmp_budget_file):
+        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).strftime("%Y-%m-%d")
+        data = {"daily": {}, "weekly": {}, "tasks_daily": {yesterday: 4}}
+        _tmp_budget_file.write_text(json.dumps(data))
+
+        result = check_task_limits(max_per_day=4)
+        assert result["today_count"] == 0
+        assert result["daily_allowed"] is True
