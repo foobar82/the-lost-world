@@ -49,3 +49,6 @@ npm-debug.log*
 
 # Runtime PID files
 *.pid
+
+# Observability metrics data (append-only JSONL, not tracked in git)
+metrics/*.jsonl

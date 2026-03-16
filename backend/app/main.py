@@ -8,6 +8,7 @@ from starlette.responses import FileResponse
 
 from .constants import API_VERSION, FRONTEND_CORS_ORIGIN
 from .database import Base, engine
+from .middleware_metrics import MetricsMiddleware, get_counters
 from .router_feedback import router as feedback_router
 
 Base.metadata.create_all(bind=engine)
@@ -21,6 +22,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(MetricsMiddleware)
 
 app.include_router(feedback_router)
 
@@ -28,6 +30,12 @@ app.include_router(feedback_router)
 @app.get("/api/health")
 def health_check():
     return {"status": "ok"}
+
+
+@app.get("/api/metrics")
+def metrics():
+    """Return in-process HTTP request counters and derived error rates."""
+    return get_counters()
 
 
 # In production, serve the built React frontend as static files.
