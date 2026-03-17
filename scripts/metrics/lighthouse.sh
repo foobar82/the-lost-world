@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run Lighthouse against a deployed URL and record scores to metrics/lighthouse.jsonl.
 # Requires Chromium (or Chrome) installed on the host.
-# Uses npx so no package.json change is needed (lighthouse is downloaded on first run).
+# lighthouse is listed in frontend/package.json devDependencies and installed via npm install.
 #
 # Usage:
 #   URL=http://localhost:8000 bash scripts/metrics/lighthouse.sh
@@ -19,7 +19,7 @@ echo "Running Lighthouse against $TARGET_URL ..."
 # Run Lighthouse, writing JSON to stdout and capturing it.
 # --only-categories limits the run to the four scored categories (faster).
 cd "$REPO_ROOT/frontend"
-npx --yes lighthouse@12 \
+npx lighthouse \
     "$TARGET_URL" \
     --output json \
     --output-path "$TMP_JSON" \
