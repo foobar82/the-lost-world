@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run Lighthouse against a deployed URL and record scores to metrics/lighthouse.jsonl.
 # Requires Chromium (or Chrome) installed on the host.
-# Uses npx so no package.json change is needed (lighthouse is downloaded on first run).
+# Uses npx to run lighthouse@12 on demand (not in package.json — avoids ~180 transitive deps).
 #
 # Usage:
 #   URL=http://localhost:8000 bash scripts/metrics/lighthouse.sh
