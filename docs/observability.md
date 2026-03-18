@@ -13,7 +13,7 @@ All new dependencies are installed automatically by the session-start hook.
 
 | Dependency | Version | Tracked in | Purpose |
 |---|---|---|---|
-| `lighthouse` | `^12.0.0` | `frontend/package.json` devDependencies | Lighthouse CLI for Metric 2 & 3 |
+| `lighthouse` | `@12` (major-pinned) | `npx --yes` (ephemeral) | Lighthouse CLI for Metrics 2 & 3 — ~180 transitive deps, not worth adding to lockfile for an optional metrics tool |
 | `pip-audit` | `2.8.0` | `backend/requirements.txt` | CVE scanning for Python deps (Metric 5) |
 | `radon` | `6.0.1` | `backend/requirements.txt` | Cyclomatic complexity for Python (Metric 6) |
 | `jscpd` | latest | `npx --yes` (ephemeral) | Duplication detection for Metric 6 |

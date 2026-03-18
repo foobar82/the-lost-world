@@ -50,7 +50,7 @@ if command -v npx >/dev/null 2>&1; then
     trap 'rm -f "$TMP_LH"' EXIT
 
     cd "$REPO_ROOT/frontend"
-    if npx lighthouse \
+    if npx --yes lighthouse@12 \
         "$TARGET_URL" \
         --output json \
         --output-path "$TMP_LH" \
