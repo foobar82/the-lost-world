@@ -10,6 +10,7 @@ from .constants import COST_PER_TOKEN_GBP, DAILY_CAP_GBP, WEEKLY_CAP_GBP
 logger = logging.getLogger(__name__)
 
 BUDGET_FILE = Path(__file__).resolve().parent / "data" / "budget.json"
+KILL_SWITCH_FILE = Path(__file__).resolve().parent / "data" / "STOP"
 
 
 def _today_str() -> str:
@@ -85,6 +86,25 @@ def check_task_limits(max_per_day: int) -> dict:
         "daily_remaining": daily_remaining,
         "daily_allowed": daily_remaining > 0,
     }
+
+
+def check_kill_switch() -> dict:
+    """Check whether the manual kill switch has been activated.
+
+    The kill switch is a plain file at ``pipeline/data/STOP``.  Create it
+    (e.g. ``touch pipeline/data/STOP`` over SSH) to halt any batch that has
+    not yet started or is between tasks.  Remove it to re-enable the pipeline.
+
+    Returns a dict with keys:
+        active (bool), path (str)
+    """
+    active = KILL_SWITCH_FILE.exists()
+    if active:
+        logger.warning(
+            "Kill switch active — %s exists. Remove it to re-enable the pipeline.",
+            KILL_SWITCH_FILE,
+        )
+    return {"active": active, "path": str(KILL_SWITCH_FILE)}
 
 
 def check_budget() -> dict:

@@ -17,6 +17,7 @@ from pipeline.budget import (  # noqa: E402
     _load_budget,
     _save_budget,
     check_budget,
+    check_kill_switch,
     check_task_limits,
     record_task,
     record_usage,
@@ -261,3 +262,37 @@ class TestCheckTaskLimits:
         result = check_task_limits(max_per_day=4)
         assert result["today_count"] == 0
         assert result["daily_allowed"] is True
+
+
+# ---------------------------------------------------------------------------
+# Kill switch
+# ---------------------------------------------------------------------------
+
+
+class TestKillSwitch:
+    def test_inactive_when_file_missing(self, tmp_path, monkeypatch):
+        monkeypatch.setattr("pipeline.budget.KILL_SWITCH_FILE", tmp_path / "STOP")
+        result = check_kill_switch()
+        assert result["active"] is False
+
+    def test_active_when_file_exists(self, tmp_path, monkeypatch):
+        stop_file = tmp_path / "STOP"
+        stop_file.touch()
+        monkeypatch.setattr("pipeline.budget.KILL_SWITCH_FILE", stop_file)
+        result = check_kill_switch()
+        assert result["active"] is True
+
+    def test_returns_path(self, tmp_path, monkeypatch):
+        stop_file = tmp_path / "STOP"
+        monkeypatch.setattr("pipeline.budget.KILL_SWITCH_FILE", stop_file)
+        result = check_kill_switch()
+        assert "path" in result
+        assert str(stop_file) == result["path"]
+
+    def test_becomes_inactive_after_file_removed(self, tmp_path, monkeypatch):
+        stop_file = tmp_path / "STOP"
+        stop_file.touch()
+        monkeypatch.setattr("pipeline.budget.KILL_SWITCH_FILE", stop_file)
+        assert check_kill_switch()["active"] is True
+        stop_file.unlink()
+        assert check_kill_switch()["active"] is False

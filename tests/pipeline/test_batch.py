@@ -865,3 +865,96 @@ class TestBatchTaskRateLimiting:
 
         assert "tasks_rate_limited" in result
         assert result["tasks_rate_limited"] is False
+
+
+# ---------------------------------------------------------------------------
+# Tests — kill switch
+# ---------------------------------------------------------------------------
+
+
+class TestBatchKillSwitch:
+    @patch("pipeline.batch.check_kill_switch")
+    def test_kill_switch_active_at_preflight_aborts_immediately(
+        self, mock_ks, db_session, seed_pending,
+    ):
+        """If the kill switch is active before the batch starts, abort with no work done."""
+        mock_ks.return_value = {"active": True, "path": "/pipeline/data/STOP"}
+
+        result = run_batch(config=PIPELINE_CONFIG, agents=None, session=db_session)
+
+        assert result["tasks_attempted"] == 0
+        assert result["tasks_completed"] == 0
+        assert result["kill_switch_active"] is True
+
+        # Submissions must remain pending.
+        for ref in seed_pending:
+            fb = db_session.query(Feedback).filter_by(reference=ref).one()
+            assert fb.status == FeedbackStatus.pending
+
+    @patch("pipeline.batch.store_feedback_embedding", return_value=True)
+    @patch("pipeline.batch.check_budget")
+    @patch("pipeline.batch.check_kill_switch")
+    def test_kill_switch_activated_mid_batch_stops_processing(
+        self, mock_ks, mock_budget, mock_embed, db_session, seed_pending,
+    ):
+        """Kill switch tripped between tasks stops further processing."""
+        mock_budget.return_value = _ok_budget()
+
+        call_count = 0
+
+        def _ks_side_effect():
+            nonlocal call_count
+            call_count += 1
+            # First call (pre-flight): inactive.  Second (before task 1): active.
+            return {"active": call_count > 1, "path": "/pipeline/data/STOP"}
+
+        mock_ks.side_effect = _ks_side_effect
+
+        tasks = [
+            {"references": [seed_pending[0]], "summary": "Task 1",
+             "documents": [], "cluster_size": 1},
+            {"references": [seed_pending[1]], "summary": "Task 2",
+             "documents": [], "cluster_size": 1},
+        ]
+        agents = _make_agents(
+            [{"references": [seed_pending[0]], "documents": []},
+             {"references": [seed_pending[1]], "documents": []}],
+            tasks,
+            writer_outputs=[_writer_ok("A"), _writer_ok("B")],
+        )
+
+        result = run_batch(config=PIPELINE_CONFIG, agents=agents, session=db_session)
+
+        assert result["tasks_attempted"] == 0
+        assert result["kill_switch_active"] is True
+
+    @patch("pipeline.batch.store_feedback_embedding", return_value=True)
+    @patch("pipeline.batch.check_budget")
+    @patch("pipeline.batch.check_kill_switch")
+    def test_kill_switch_inactive_normal_run(
+        self, mock_ks, mock_budget, mock_embed, db_session, seed_pending,
+    ):
+        """With kill switch inactive, the batch proceeds normally."""
+        mock_budget.return_value = _ok_budget()
+        mock_ks.return_value = {"active": False, "path": "/pipeline/data/STOP"}
+
+        tasks = [{"references": seed_pending, "summary": "Task",
+                  "documents": [], "cluster_size": 3}]
+        agents = _make_agents(
+            [{"references": seed_pending, "documents": []}],
+            tasks,
+        )
+
+        result = run_batch(config=PIPELINE_CONFIG, agents=agents, session=db_session)
+
+        assert result["kill_switch_active"] is False
+        assert result["tasks_completed"] == 1
+
+    @patch("pipeline.batch.check_kill_switch")
+    def test_summary_includes_kill_switch_active_field(self, mock_ks, db_session):
+        """Summary always has a kill_switch_active field."""
+        mock_ks.return_value = {"active": True, "path": "/pipeline/data/STOP"}
+
+        result = run_batch(config=PIPELINE_CONFIG, agents=None, session=db_session)
+
+        assert "kill_switch_active" in result

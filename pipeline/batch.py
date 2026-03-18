@@ -27,7 +27,7 @@ from backend.app.database import Base  # noqa: E402
 from backend.app.models import Feedback, FeedbackStatus  # noqa: E402
 
 from pipeline.agents.base import AgentInput, AgentOutput  # noqa: E402
-from pipeline.budget import COST_PER_TOKEN_GBP, check_budget, check_task_limits, record_task  # noqa: E402
+from pipeline.budget import COST_PER_TOKEN_GBP, check_budget, check_kill_switch, check_task_limits, record_task  # noqa: E402
 from pipeline.config import PIPELINE_CONFIG  # noqa: E402
 from pipeline.registry import AGENTS  # noqa: E402
 from pipeline.utils.embeddings import store_feedback_embedding  # noqa: E402
@@ -203,8 +203,19 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
         "total_tokens": 0,
         "budget_remaining": {},
         "tasks_rate_limited": False,
+        "kill_switch_active": False,
         "details": [],
     }
+
+    # ── 0. Check kill switch ─────────────────────────────────────────
+    kill_switch = check_kill_switch()
+    if kill_switch["active"]:
+        logger.warning(
+            "Kill switch is active — aborting batch. Remove %s to re-enable.",
+            kill_switch["path"],
+        )
+        summary["kill_switch_active"] = True
+        return summary
 
     # ── 1. Check budget ──────────────────────────────────────────────
     budget = check_budget()
@@ -317,6 +328,13 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
         if not task_limits["daily_allowed"]:
             logger.warning("Daily task limit reached mid-batch — stopping")
             summary["tasks_rate_limited"] = True
+            break
+
+        # Re-check kill switch before each task.
+        kill_switch = check_kill_switch()
+        if kill_switch["active"]:
+            logger.warning("Kill switch activated mid-batch — stopping")
+            summary["kill_switch_active"] = True
             break
 
         # Re-check budget before each expensive task.
