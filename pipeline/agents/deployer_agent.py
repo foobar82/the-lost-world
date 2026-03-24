@@ -11,6 +11,7 @@ from ..constants import (
     OUTPUT_TRUNCATION_LENGTH,
     PIPELINE_SCRIPT_TIMEOUT_SECONDS,
 )
+from ..utils.failure_parser import parse_test_failures
 from .base import Agent, AgentInput, AgentOutput
 
 logger = logging.getLogger(__name__)
@@ -122,12 +123,16 @@ class DeployerAgent(Agent):
                 logger.warning("Pipeline failed on branch %s", branch_name)
                 _run_cmd(["git", "checkout", original_branch], cwd=repo_path)
                 _run_cmd(["git", "branch", "-D", branch_name], cwd=repo_path)
+                stdout_tail = pipeline_result.stdout[-OUTPUT_TRUNCATION_LENGTH:]
+                stderr_tail = pipeline_result.stderr[-OUTPUT_TRUNCATION_LENGTH:]
+                test_failures = parse_test_failures(stdout_tail, stderr_tail)
                 return AgentOutput(
                     data={
                         "branch": branch_name,
                         "deployed": False,
-                        "pipeline_stdout": pipeline_result.stdout[-OUTPUT_TRUNCATION_LENGTH:],
-                        "pipeline_stderr": pipeline_result.stderr[-OUTPUT_TRUNCATION_LENGTH:],
+                        "pipeline_stdout": stdout_tail,
+                        "pipeline_stderr": stderr_tail,
+                        "test_failures": test_failures,
                     },
                     success=False,
                     message=f"Pipeline failed on branch {branch_name}",
