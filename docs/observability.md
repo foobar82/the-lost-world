@@ -280,6 +280,44 @@ curl http://localhost:8000/api/metrics
 
 ---
 
+## Metric 8 — Code Churn
+
+**Script:** `scripts/metrics/code_churn.sh`
+**When to run:** Per cycle / per PR, or on a daily/weekly schedule.
+**Output file:** `metrics/code_churn.jsonl`
+**Requires:** `git` and `python3` (both always available).
+
+```bash
+bash scripts/metrics/code_churn.sh                              # last 24 hours (default)
+SINCE="7 days ago" bash scripts/metrics/code_churn.sh          # last week
+FROM_REF=main TO_REF=HEAD bash scripts/metrics/code_churn.sh   # explicit ref range
+```
+
+**JSONL fields:**
+
+| Field | Type | Description |
+|---|---|---|
+| `timestamp` | string | ISO 8601 UTC |
+| `range` | string | Human-readable description of the measured range |
+| `commits` | int | Number of commits in the range |
+| `authors` | int | Number of unique authors (by email) |
+| `lines_added` | int | Total lines added across all files |
+| `lines_removed` | int | Total lines removed across all files |
+| `net_lines` | int | `lines_added − lines_removed` |
+| `files_touched` | int | Unique files modified in the range |
+| `total_tracked_files` | int | Total files tracked by git at measurement time |
+| `files_pct` | float | `files_touched / total_tracked_files × 100` |
+| `top_files` | array | Up to 10 most-changed files: `{file, added, removed}` |
+
+**Example record:**
+```json
+{"timestamp": "2026-03-25T10:00:00Z", "range": "since 24 hours ago", "commits": 4, "authors": 2, "lines_added": 183, "lines_removed": 47, "net_lines": 136, "files_touched": 9, "total_tracked_files": 74, "files_pct": 12.16, "top_files": [{"file": "backend/app/main.py", "added": 60, "removed": 12}, {"file": "frontend/src/App.tsx", "added": 45, "removed": 20}]}
+```
+
+**Thresholds to watch:** `files_pct > 20` in a single day (large-blast changes); `net_lines` growing steeply without a corresponding feature.
+
+---
+
 ## Quick Reference
 
 | # | Metric | Script / Endpoint | Output file | When to run |
@@ -291,3 +329,4 @@ curl http://localhost:8000/api/metrics
 | 5 | Dependency audit | `scripts/metrics/dependency_audit.sh` | `metrics/dependency_audit.jsonl` | Weekly |
 | 6 | Code complexity | `scripts/metrics/code_complexity.sh` | `metrics/code_complexity.jsonl` | Weekly |
 | 7 | HTTP error rate | `GET /api/metrics` | `metrics/error_rate.jsonl` | Live |
+| 8 | Code churn | `scripts/metrics/code_churn.sh` | `metrics/code_churn.jsonl` | Per cycle / daily |
