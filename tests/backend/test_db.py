@@ -23,6 +23,7 @@ class TestSchemaIntegrity:
             "content",
             "status",
             "agent_notes",
+            "source",
             "created_at",
             "updated_at",
         }

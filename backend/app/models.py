@@ -24,6 +24,7 @@ class Feedback(Base):
         Enum(FeedbackStatus), nullable=False, default=FeedbackStatus.pending
     )
     agent_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source: Mapped[str] = mapped_column(String(32), nullable=False, default="user")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
     )
