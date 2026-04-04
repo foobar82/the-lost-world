@@ -101,7 +101,7 @@ A bounded 2D ecosystem — "The Lost World plateau" — that evolves daily throu
 - **Static contract file:** Unmodifiable by agents; read before planning any work. Defines invariants (e.g. "app must have a landing page," "all routes must be reachable," "user data must not be exposed") <!-- completed -->
 - **Essential test suite:** Human-maintained only; runs regardless of what the app currently does <!-- completed -->
 - **Constitutional amendment process:** Agents can flag "core purpose has shifted and the test suite is causing problems" via a ring-fenced communications channel. Humans approve or reject changes to the contract/test suite.
-- **Ring-fenced comms channel:** Implementation TBD (Slack, email, or a dedicated page in the app)
+- **Ring-fenced comms channel:** Implementation TBD (Slack, email, or a dedicated page in the app) <!-- completed -->
 
 ### Code Quality
 - Deterministic checks (linting, static analysis) + agentic review <!-- completed -->
@@ -111,13 +111,13 @@ A bounded 2D ecosystem — "The Lost World plateau" — that evolves daily throu
 
 Leading indicators (in order of ease of detection):
 
-1. Build/bundle size — logged per deployment
-2. Lighthouse scores — automated runs post-deployment
-3. Page load time / core web vitals — synthetic monitoring
-4. Test execution time — trend tracking
-5. Dependency count & vulnerability audit — automated CVE scanning
-6. Code complexity metrics — cyclomatic complexity, duplication, file count
-7. Error rate in production — requires real traffic
+1. Build/bundle size — logged per deployment <!-- completed -->
+2. Lighthouse scores — automated runs post-deployment <!-- completed -->
+3. Page load time / core web vitals — synthetic monitoring <!-- completed -->
+4. Test execution time — trend tracking <!-- completed -->
+5. Dependency count & vulnerability audit — automated CVE scanning <!-- completed -->
+6. Code complexity metrics — cyclomatic complexity, duplication, file count <!-- completed -->
+7. Error rate in production — requires real traffic <!-- completed -->
 
 ### Threshold Alerts (Two-Tier)
 - **Hard thresholds:** Auto-pause the pipeline (e.g. Lighthouse below 60, build fails, CVE detected)
@@ -290,7 +290,7 @@ Leading indicators (in order of ease of detection):
 - Add budget caps and over-cap behaviour <!-- completed -->
 
 **Weeks 7-8: Observability and polish**
-- Add day-one metrics (build size, Lighthouse, code churn tracking)
+- Add day-one metrics (build size, Lighthouse, code churn tracking) <!-- completed -->
 - Set up hard/soft threshold alerts
 - Automate the daily batch via cron
 - Add reference numbers and agent notes to the queue display <!-- completed -->
@@ -301,7 +301,7 @@ Leading indicators (in order of ease of detection):
 
 **Weeks 9-10: Harden for real users**
 - Rate limiting and session tokens
-- Terms of service and privacy policy in the app
+- Terms of service and privacy policy in the app <!-- completed -->
 - Evil-detection review agent
 - Sandboxing review (proxy allowlisting, outbound restrictions)
 - Stress-test with own adversarial requests
@@ -318,6 +318,6 @@ Leading indicators (in order of ease of detection):
 ## Open Questions
 
 - Specific linting and static analysis tooling for code quality checks <!-- completed -->
-- Ring-fenced comms channel implementation (Slack, email, or in-app?)
+- Ring-fenced comms channel implementation (Slack, email, or in-app?) <!-- completed -->
 - Specific hard/soft threshold values for observability alerts
 - Detailed contract file contents <!-- completed -->
