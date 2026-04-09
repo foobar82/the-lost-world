@@ -101,7 +101,7 @@ A bounded 2D ecosystem — "The Lost World plateau" — that evolves daily throu
 - **Static contract file:** Unmodifiable by agents; read before planning any work. Defines invariants (e.g. "app must have a landing page," "all routes must be reachable," "user data must not be exposed") <!-- completed -->
 - **Essential test suite:** Human-maintained only; runs regardless of what the app currently does <!-- completed -->
 - **Constitutional amendment process:** Agents can flag "core purpose has shifted and the test suite is causing problems" via a ring-fenced communications channel. Humans approve or reject changes to the contract/test suite. <!-- completed -->
-- **Ring-fenced comms channel:** Implementation TBD (Slack, email, or a dedicated page in the app) <!-- completed -->
+- **Ring-fenced comms channel:** Dedicated file <!-- completed -->
 
 ### Code Quality
 - Deterministic checks (linting, static analysis) + agentic review <!-- completed -->
@@ -301,7 +301,7 @@ Leading indicators (in order of ease of detection):
 
 **Weeks 9-10: Harden for real users**
 - Rate limiting and session tokens
-- Terms of service and privacy policy in the app
+- Terms of service and privacy policy in the app <!-- completed -->
 - Evil-detection review agent
 - Sandboxing review (proxy allowlisting, outbound restrictions)
 - Stress-test with own adversarial requests

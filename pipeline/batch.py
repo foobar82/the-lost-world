@@ -446,7 +446,27 @@ def run_batch(  # noqa: C901 — orchestration is inherently sequential
         record_task()
         summary["details"].append(task_detail)
 
-    # ── 7. Final summary ─────────────────────────────────────────────
+    # ── 7. Amendment analysis ────────────────────────────────────────
+    try:
+        from pipeline.utils.amendment_analyzer import analyze_and_propose  # noqa: E402
+
+        repo = cfg.get("repo_path", ".")
+        new_proposals = analyze_and_propose(
+            runs_dir=str(Path(repo) / "pipeline" / "data" / "runs"),
+            output_json=str(Path(repo) / "pipeline" / "data" / "amendment_proposals.json"),
+            concerns_md=str(Path(repo) / "docs" / "concerns.md"),
+        )
+        if new_proposals:
+            logger.warning(
+                "Amendment analyzer flagged %d test(s) as potentially outdated. "
+                "See docs/concerns.md for details.",
+                len(new_proposals),
+            )
+            summary["amendment_proposals"] = len(new_proposals)
+    except Exception as exc:
+        logger.warning("Amendment analysis skipped: %s", exc)
+
+    # ── 8. Final summary ─────────────────────────────────────────────
     summary["budget_remaining"] = check_budget()
 
     logger.info(

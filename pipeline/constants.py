@@ -60,3 +60,12 @@ CLUSTER_DISTANCE_METRIC: str = PIPELINE_CONFIG["cluster_distance_metric"]
 # ── Output truncation ─────────────────────────────────────────────────
 
 OUTPUT_TRUNCATION_LENGTH: int = 2000
+
+# ── Amendment process ─────────────────────────────────────────────────
+
+# Number of distinct tasks that must fail on the same protected test
+# before an amendment proposal is raised.
+AMENDMENT_FAILURE_THRESHOLD: int = 3
+
+# Look-back window in days for historical failure analysis.
+AMENDMENT_WINDOW_DAYS: int = 14

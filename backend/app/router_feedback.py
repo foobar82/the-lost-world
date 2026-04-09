@@ -21,6 +21,7 @@ def create_feedback(body: FeedbackCreate, db: Session = Depends(get_db)):
         reference="",  # placeholder until we have the auto-generated id
         content=body.content,
         status=FeedbackStatus.pending,
+        source=body.source,
     )
     db.add(feedback)
     db.flush()  # assigns feedback.id from the autoincrement sequence
