@@ -44,11 +44,11 @@ A bounded 2D ecosystem — "The Lost World plateau" — that evolves daily throu
 - **Local LLM runtime:** Ollama <!-- completed -->
 - **Source control:** Git monorepo (frontend + backend + agent pipeline) <!-- completed -->
 
-### Infrastructure
-- **Development:** Windows desktop
-- **Production:** Wiped MacBook M3 16GB, running as a dedicated server (clean OS, sleep disabled, ethernet)
+### Infrastructure 
+- **Development:** Windows desktop <!-- completed -->
+- **Production:** Wiped MacBook M3 16GB, running as a dedicated server (clean OS, sleep disabled, ethernet) <!-- completed -->
 - **Exposure:** Cloudflare Tunnel (no port forwarding needed) <!-- completed -->
-- **Accepted risk:** Home internet or hardware failure takes the app offline; acceptable for an experiment
+- **Accepted risk:** Home internet or hardware failure takes the app offline; acceptable for an experiment <!-- completed -->
 
 ### Agent Ecosystem
 - **Local models (Ollama, 7-8B on MacBook M3):** Cheap tasks — evil filtering, embedding generation, clustering, agent notes for queue <!-- completed -->
@@ -100,24 +100,24 @@ A bounded 2D ecosystem — "The Lost World plateau" — that evolves daily throu
 ### Architectural Constitution
 - **Static contract file:** Unmodifiable by agents; read before planning any work. Defines invariants (e.g. "app must have a landing page," "all routes must be reachable," "user data must not be exposed") <!-- completed -->
 - **Essential test suite:** Human-maintained only; runs regardless of what the app currently does <!-- completed -->
-- **Constitutional amendment process:** Agents can flag "core purpose has shifted and the test suite is causing problems" via a ring-fenced communications channel. Humans approve or reject changes to the contract/test suite.
-- **Ring-fenced comms channel:** Implementation TBD (Slack, email, or a dedicated page in the app)
+- **Constitutional amendment process:** Agents can flag "core purpose has shifted and the test suite is causing problems" via a ring-fenced communications channel. Humans approve or reject changes to the contract/test suite. <!-- completed -->
+- **Ring-fenced comms channel:** Implementation TBD (Slack, email, or a dedicated page in the app) <!-- completed -->
 
 ### Code Quality
 - Deterministic checks (linting, static analysis) + agentic review <!-- completed -->
 - Specific linting/static analysis tooling TBD <!-- completed -->
 
-### Observability & Degradation Detection
+### Observability & Degradation Detection <!-- completed -->
 
 Leading indicators (in order of ease of detection):
 
-1. Build/bundle size — logged per deployment
-2. Lighthouse scores — automated runs post-deployment
-3. Page load time / core web vitals — synthetic monitoring
-4. Test execution time — trend tracking
-5. Dependency count & vulnerability audit — automated CVE scanning
-6. Code complexity metrics — cyclomatic complexity, duplication, file count
-7. Error rate in production — requires real traffic
+1. Build/bundle size — logged per deployment <!-- completed -->
+2. Lighthouse scores — automated runs post-deployment <!-- completed -->
+3. Page load time / core web vitals — synthetic monitoring <!-- completed -->
+4. Test execution time — trend tracking <!-- completed -->
+5. Dependency count & vulnerability audit — automated CVE scanning <!-- completed -->
+6. Code complexity metrics — cyclomatic complexity, duplication, file count <!-- completed -->
+7. Error rate in production — requires real traffic <!-- completed -->
 
 ### Threshold Alerts (Two-Tier)
 - **Hard thresholds:** Auto-pause the pipeline (e.g. Lighthouse below 60, build fails, CVE detected)
@@ -277,8 +277,8 @@ Leading indicators (in order of ease of detection):
 - Submit own feedback requests
 - Run the full pipeline end-to-end (manually triggered) <!-- completed -->
 - Write the contract file and essential test suite <!-- completed -->
-- First blog post: "What I'm building and why"
-- **Milestone: Minimum success achieved ✅**
+- First blog post: "What I'm building and why" <!-- completed -->
+- **Milestone: Minimum success achieved ✅** <!-- completed -->
 
 ### Month 2: Autonomy — "Let it run unsupervised"
 
@@ -286,11 +286,11 @@ Leading indicators (in order of ease of detection):
 - Add the review agent (second model) <!-- completed -->
 - Implement the deployment pipeline (feature branch → tests → review → merge → auto-deploy) <!-- completed -->
 - Set up deterministic checks (linting, basic tests) <!-- completed -->
-- Implement emergency brake mechanism
+- Implement emergency brake mechanism <!-- descoped - over-engineered -->
 - Add budget caps and over-cap behaviour <!-- completed -->
 
 **Weeks 7-8: Observability and polish**
-- Add day-one metrics (build size, Lighthouse, code churn tracking)
+- Add day-one metrics (build size, Lighthouse, code churn tracking) <!-- completed -->
 - Set up hard/soft threshold alerts
 - Automate the daily batch via cron
 - Add reference numbers and agent notes to the queue display <!-- completed -->
@@ -318,6 +318,6 @@ Leading indicators (in order of ease of detection):
 ## Open Questions
 
 - Specific linting and static analysis tooling for code quality checks <!-- completed -->
-- Ring-fenced comms channel implementation (Slack, email, or in-app?)
+- Ring-fenced comms channel implementation (file-based)  <!-- completed -->
 - Specific hard/soft threshold values for observability alerts
 - Detailed contract file contents <!-- completed -->
