@@ -159,6 +159,119 @@ python -m pipeline.simulate_user --n 3
 python -m pipeline.simulate_user --n 2 --persona curious_explorer
 ```
 
+## Implementation spec
+
+### Persona harness (`pipeline/simulator/persona.py`)
+
+```python
+@dataclass
+class Persona:
+    name: str
+    description: str       # Injected into the prompt verbatim
+    technical_level: str   # "non-technical" | "moderate" | "technical"
+    engagement_style: str  # "curious" | "critical" | "confused" | "enthusiastic"
+
+DEFAULT_PERSONA = Persona(
+    name="curious_explorer",
+    description="A non-technical user who finds the ecosystem visually interesting "
+                "and wants to watch it grow and change in surprising ways. Tends to "
+                "notice when something looks odd or static, and imagines what might "
+                "make the world feel more alive.",
+    technical_level="non-technical",
+    engagement_style="curious",
+)
+
+PERSONAS: dict[str, Persona] = {
+    DEFAULT_PERSONA.name: DEFAULT_PERSONA,
+    # add more here — no other code changes needed
+}
+```
+
+### Context builder (`pipeline/simulator/context_builder.py`)
+
+```python
+def build_context(repo_path: str, api_base_url: str) -> dict:
+    return {
+        "source_summary": _read_simulation_source(repo_path),
+        "recent_changes": _git_log(repo_path, n=15),
+        "recently_completed": _fetch_done_feedback(api_base_url, limit=10),
+    }
+```
+
+`_read_simulation_source` reads `simulation.ts`, `types.ts`, and
+`EcosystemCanvas.tsx` — enough to describe what exists without overwhelming
+the context window.
+
+### Prompt structure
+
+```
+You are simulating a user of "The Lost World" — an evolving 2D ecosystem.
+
+## Your persona
+{persona.description}
+
+## What exists in the app currently
+{source_summary}
+
+## What has changed recently
+{recent_changes}
+
+## What has already been requested and built
+{recently_completed}
+
+## Your task
+Generate {n_items} feedback submissions as this user would write them.
+
+For each item, write it as a direct user request typed into a text box.
+Also consider: what might cause a user to disengage without saying anything?
+If you identify such a scenario, include it as feedback even if the user
+might not articulate it well.
+
+Focus on observations about the ecosystem — not technical implementations.
+
+Respond as JSON:
+{
+  "feedback_items": ["...", "..."],
+  "reasoning": "What you noticed and why you generated these items"
+}
+```
+
+Uses `writer_model` from config (Claude API). Checks budget before calling.
+
+### Schema changes
+
+Add a `source` field to the Feedback model:
+
+- **`backend/app/models.py`**: `source: str = "user"` on the `Feedback` model
+- **`backend/app/schemas.py`**: `source: str = "user"` on `FeedbackCreate` and `FeedbackResponse`
+- **DB migration**: `ALTER TABLE feedback ADD COLUMN source VARCHAR DEFAULT 'user'`
+
+The simulator submits with `source: "simulator"`. The API default is `"user"`
+so all existing behaviour is unchanged.
+
+### Files to create or modify
+
+| File | Action |
+|---|---|
+| `pipeline/simulator/__init__.py` | Create (empty) |
+| `pipeline/simulator/persona.py` | Create |
+| `pipeline/simulator/context_builder.py` | Create |
+| `pipeline/simulator/user_simulator.py` | Create |
+| `pipeline/simulate_user.py` | Create (entry point) |
+| `backend/app/models.py` | Modify — add `source` field |
+| `backend/app/schemas.py` | Modify — add `source` field |
+| DB migration script | Create |
+
+### Verification
+
+1. `python -m pipeline.simulate_user --dry-run` — prints generated feedback and reasoning, no side effects
+2. `python -m pipeline.simulate_user --n 2` — submits 2 items; verify via `GET /api/feedback?status=pending`
+3. Check `pipeline/data/simulator/<timestamp>.json` for reasoning trace
+4. `pytest tests/pipeline/test_simulator.py` — unit tests for context builder and agent
+5. Run existing backend tests to confirm schema change is backwards-compatible
+
+---
+
 ## Future work
 
 - **Continuity**: simulator maintains a journal across runs; simulates a
