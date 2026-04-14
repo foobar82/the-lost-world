@@ -17,8 +17,6 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-import httpx
-
 from ..agents.base import Agent, AgentInput, AgentOutput
 from ..budget import check_budget, record_usage
 from ..constants import DEFAULT_WRITER_MODEL
@@ -269,6 +267,7 @@ class UserSimulatorAgent(Agent):
                 continue
 
             try:
+                import httpx
                 response = httpx.post(
                     f"{api_base_url}/api/feedback",
                     json={"content": item, "source": "simulator"},
