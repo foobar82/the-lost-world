@@ -15,8 +15,8 @@ import httpx
 from ..budget import check_budget, record_usage
 from ..constants import (
     ESTIMATED_TOKENS_PER_SUMMARY,
-    HTTP_TIMEOUT_SECONDS,
     OLLAMA_CHAT_MODEL,
+    OLLAMA_THEME_TIMEOUT_SECONDS,
     OLLAMA_URL,
 )
 from .base import Agent, AgentInput, AgentOutput
@@ -154,7 +154,7 @@ class ThemeAgent(Agent):
                     ],
                     "stream": False,
                 },
-                timeout=HTTP_TIMEOUT_SECONDS,
+                timeout=OLLAMA_THEME_TIMEOUT_SECONDS,
             )
             response.raise_for_status()
             body = response.json()
