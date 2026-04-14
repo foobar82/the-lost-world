@@ -21,7 +21,7 @@ import httpx
 
 from ..agents.base import Agent, AgentInput, AgentOutput
 from ..budget import check_budget, record_usage
-from ..constants import DEFAULT_WRITER_MODEL
+from ..constants import DEFAULT_WRITER_MODEL, HTTP_TIMEOUT_SECONDS
 from ..utils.embeddings import generate_embedding, get_collection
 from .context_builder import build_context
 from .persona import DEFAULT_PERSONA, PERSONAS, Persona
@@ -272,7 +272,7 @@ class UserSimulatorAgent(Agent):
                 response = httpx.post(
                     f"{api_base_url}/api/feedback",
                     json={"content": item, "source": "simulator"},
-                    timeout=10,
+                    timeout=HTTP_TIMEOUT_SECONDS * 2,
                 )
                 response.raise_for_status()
                 submitted.append(item)
